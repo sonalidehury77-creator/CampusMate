@@ -3,26 +3,29 @@ import { createClient } from "@/lib/supabase/server";
 export default async function SupabaseTestPage() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id")
+    .limit(1);
+
+  const { data: departments, error: departmentsError } = await supabase
     .from("departments")
-    .select("id, name, code")
-    .limit(10);
+    .select("id")
+    .limit(1);
+
+  const error = profilesError ?? departmentsError;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 shadow-sm">
+      <div className="mx-auto max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold">
           CampusMate Database Test
         </h1>
 
-        <p className="mt-2 text-gray-600">
-          Testing the connection between Next.js and Supabase.
-        </p>
-
         {error ? (
-          <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">
+          <div className="mt-4 rounded-lg bg-red-50 p-4 text-red-700">
             <p className="font-semibold">
-              Database connection/query failed
+              Database responded with an error
             </p>
 
             <p className="mt-2 text-sm">
@@ -30,14 +33,29 @@ export default async function SupabaseTestPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-6 rounded-xl bg-green-50 p-4 text-green-700">
+          <div className="mt-4 rounded-lg bg-green-50 p-4 text-green-700">
             <p className="font-semibold">
               CampusMate database connection is working.
             </p>
 
-            <pre className="mt-4 overflow-auto rounded-lg bg-white p-4 text-sm text-gray-800">
-              {JSON.stringify(data, null, 2)}
-            </pre>
+            <p className="mt-2 text-sm">
+              The required database tables are reachable.
+            </p>
+
+            <div className="mt-4 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
+              <p>
+                Profiles found: {profiles?.length ?? 0}
+              </p>
+
+              <p>
+                Departments found: {departments?.length ?? 0}
+              </p>
+
+              <p className="mt-2">
+                Empty results are normal because we have not populated
+                CampusMate with academic data yet.
+              </p>
+            </div>
           </div>
         )}
       </div>
