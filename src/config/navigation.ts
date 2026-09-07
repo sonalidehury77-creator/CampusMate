@@ -32,7 +32,11 @@ export const mainNavigation = [
     href: "/study-planner",
   },
   {
-    label: "AI",
+    label: "AI Assistant",
     href: "/ai",
   },
+  {
+  label: "Design System",
+  href: "/design-system",
+  }, 
 ];
