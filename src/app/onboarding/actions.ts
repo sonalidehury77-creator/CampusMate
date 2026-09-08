@@ -42,8 +42,14 @@ const onboardingSchema = z.object({
   enrollmentYear: z.coerce
     .number()
     .int()
-    .min(2000, "Please enter a valid enrollment year.")
-    .max(2100, "Please enter a valid enrollment year."),
+    .min(
+      2000,
+      "Please enter a valid enrollment year.",
+    )
+    .max(
+      2100,
+      "Please enter a valid enrollment year.",
+    ),
 });
 
 export async function completeOnboarding(
@@ -63,7 +69,8 @@ export async function completeOnboarding(
 
   if (claimsError || !claimsData?.claims?.sub) {
     return {
-      message: "You must be logged in to complete onboarding.",
+      message:
+        "You must be logged in to complete onboarding.",
       errors: {},
     };
   }
@@ -81,13 +88,16 @@ export async function completeOnboarding(
     departmentId: formData.get("department_id"),
     programId: formData.get("program_id"),
     semesterId: formData.get("semester_id"),
-    enrollmentYear: formData.get("enrollment_year"),
+    enrollmentYear: formData.get(
+      "enrollment_year",
+    ),
   });
 
   if (!parsed.success) {
     return {
       message: "Please correct the errors below.",
-      errors: parsed.error.flatten().fieldErrors,
+      errors:
+        parsed.error.flatten().fieldErrors,
     };
   }
 
@@ -102,8 +112,7 @@ export async function completeOnboarding(
   } = parsed.data;
 
   /* --------------------------------
-     3. Check whether this user
-        already has a student record
+     3. Check existing student profile
   --------------------------------- */
 
   const {
@@ -122,7 +131,8 @@ export async function completeOnboarding(
     );
 
     return {
-      message: "Unable to check your existing student profile.",
+      message:
+        "Unable to check your existing student profile.",
       errors: {},
     };
   }
@@ -132,8 +142,7 @@ export async function completeOnboarding(
   }
 
   /* --------------------------------
-     4. Check whether student number
-        is already registered
+     4. Check duplicate student number
   --------------------------------- */
 
   const {
@@ -152,18 +161,23 @@ export async function completeOnboarding(
     );
 
     return {
-      message: "Unable to verify your student number.",
+      message:
+        "Unable to verify your student number.",
       errors: {},
     };
   }
 
   if (existingStudentByNumber) {
-    if (existingStudentByNumber.profile_id === userId) {
+    if (
+      existingStudentByNumber.profile_id ===
+      userId
+    ) {
       redirect("/dashboard");
     }
 
     return {
-      message: "This student number is already registered.",
+      message:
+        "This student number is already registered.",
       errors: {
         studentNumber: [
           "This student number is already registered.",
@@ -192,7 +206,8 @@ export async function completeOnboarding(
     );
 
     return {
-      message: "The selected department is invalid.",
+      message:
+        "The selected department is invalid.",
       errors: {
         departmentId: [
           "Please select a valid department.",
@@ -211,7 +226,9 @@ export async function completeOnboarding(
     error: programError,
   } = await supabase
     .from("programs")
-    .select("id, name, code, department_id")
+    .select(
+      "id, name, code, department_id",
+    )
     .eq("id", programId)
     .maybeSingle();
 
@@ -222,7 +239,8 @@ export async function completeOnboarding(
     );
 
     return {
-      message: "The selected program is invalid.",
+      message:
+        "The selected program is invalid.",
       errors: {
         programId: [
           "Please select a valid program.",
@@ -231,7 +249,9 @@ export async function completeOnboarding(
     };
   }
 
-  if (program.department_id !== departmentId) {
+  if (
+    program.department_id !== departmentId
+  ) {
     return {
       message:
         "The selected program does not belong to the selected department.",
@@ -266,7 +286,8 @@ export async function completeOnboarding(
     );
 
     return {
-      message: "The selected semester is invalid.",
+      message:
+        "The selected semester is invalid.",
       errors: {
         semesterId: [
           "Please select a valid semester.",
@@ -275,7 +296,9 @@ export async function completeOnboarding(
     };
   }
 
-  if (semester.program_id !== programId) {
+  if (
+    semester.program_id !== programId
+  ) {
     return {
       message:
         "The selected semester does not belong to the selected program.",
@@ -317,7 +340,9 @@ export async function completeOnboarding(
      9. Update profile
   --------------------------------- */
 
-  const { error: profileUpdateError } = await supabase
+  const {
+    error: profileUpdateError,
+  } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
@@ -332,7 +357,8 @@ export async function completeOnboarding(
     );
 
     return {
-      message: "Unable to update your profile.",
+      message:
+        "Unable to update your profile.",
       errors: {},
     };
   }
@@ -341,7 +367,9 @@ export async function completeOnboarding(
      10. Create student record
   --------------------------------- */
 
-  const { error: studentError } = await supabase
+  const {
+    error: studentError,
+  } = await supabase
     .from("students")
     .insert({
       profile_id: userId,
@@ -349,7 +377,8 @@ export async function completeOnboarding(
       program_id: programId,
       semester_id: semesterId,
       enrollment_year: enrollmentYear,
-      current_semester: semester.semester_number,
+      current_semester:
+        semester.semester_number,
     });
 
   if (studentError) {

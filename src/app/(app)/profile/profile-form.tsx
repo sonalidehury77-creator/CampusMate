@@ -3,9 +3,14 @@
 import { useActionState } from "react";
 
 import {
-  initialProfileState,
   updateProfile,
+  type ProfileState,
 } from "./actions";
+
+const initialState: ProfileState = {
+  message: null,
+  errors: {},
+};
 
 type ProfileFormProps = {
   fullName: string;
@@ -19,67 +24,79 @@ export function ProfileForm({
   const [state, formAction, isPending] =
     useActionState(
       updateProfile,
-      initialProfileState,
+      initialState,
     );
 
+  const errors = state?.errors ?? {};
+
   return (
-    <form action={formAction} className="space-y-5">
-      <div>
-        <label
-          htmlFor="profile_full_name"
-          className="mb-2 block text-sm font-medium"
-        >
-          Full name
-        </label>
-
-        <input
-          id="profile_full_name"
-          name="full_name"
-          defaultValue={fullName}
-          maxLength={150}
-          required
-          className="w-full rounded-control border border-border bg-white px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="profile_phone"
-          className="mb-2 block text-sm font-medium"
-        >
-          Phone number
-        </label>
-
-        <input
-          id="profile_phone"
-          name="phone"
-          defaultValue={phone}
-          maxLength={30}
-          autoComplete="tel"
-          className="w-full rounded-control border border-border bg-white px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-          placeholder="Optional"
-        />
-      </div>
-
-      {state.message && (
+    <form
+      action={formAction}
+      className="space-y-5"
+    >
+      {state?.message && (
         <div
-          role="status"
-          className={`rounded-xl px-4 py-3 text-sm ${
-            state.success
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-red-50 text-red-700"
-          }`}
+          role="alert"
+          className="rounded-xl border border-border bg-muted px-4 py-3 text-sm"
         >
           {state.message}
         </div>
       )}
 
+      <div>
+        <label
+          htmlFor="full_name"
+          className="block text-sm font-medium"
+        >
+          Full Name
+        </label>
+
+        <input
+          id="full_name"
+          name="full_name"
+          type="text"
+          defaultValue={fullName}
+          className="mt-2 block w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+        />
+
+        {errors.fullName?.[0] && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.fullName[0]}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label
+          htmlFor="phone"
+          className="block text-sm font-medium"
+        >
+          Phone Number
+        </label>
+
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          defaultValue={phone}
+          className="mt-2 block w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+        />
+
+        {errors.phone?.[0] && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.phone[0]}
+          </p>
+        )}
+      </div>
+
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-control bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isPending ? "Saving..." : "Save changes"}
+        {isPending
+          ? "Saving..."
+          : "Save Changes"}
       </button>
     </form>
   );

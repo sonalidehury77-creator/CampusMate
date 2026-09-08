@@ -1,8 +1,10 @@
-
 "use client";
 
-import { useMemo, useState } from "react";
-import { useActionState } from "react";
+import {
+  useActionState,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   completeOnboarding,
@@ -20,7 +22,6 @@ type Program = {
   department_id: string;
   name: string;
   code: string;
-  duration: number | null;
 };
 
 type Semester = {
@@ -36,8 +37,11 @@ type OnboardingFormProps = {
     email: string | null;
     phone: string | null;
   } | null;
+
   departments: Department[];
+
   programs: Program[];
+
   semesters: Semester[];
 };
 
@@ -54,6 +58,10 @@ export default function OnboardingForm({
 }: OnboardingFormProps) {
   const [step, setStep] = useState(1);
 
+  /* --------------------------------
+     Personal information
+  --------------------------------- */
+
   const [fullName, setFullName] = useState(
     profile?.full_name ?? "",
   );
@@ -65,13 +73,24 @@ export default function OnboardingForm({
   const [studentNumber, setStudentNumber] =
     useState("");
 
+  /* --------------------------------
+     Department
+  --------------------------------- */
+
   const defaultDepartment =
     departments.find(
-      (department) => department.code === "CS",
+      (department) =>
+        department.code === "CS",
     ) ?? departments[0];
 
   const [departmentId, setDepartmentId] =
-    useState(defaultDepartment?.id ?? "");
+    useState(
+      defaultDepartment?.id ?? "",
+    );
+
+  /* --------------------------------
+     Programs for selected department
+  --------------------------------- */
 
   const availablePrograms = useMemo(() => {
     if (!departmentId) {
@@ -80,17 +99,29 @@ export default function OnboardingForm({
 
     return programs.filter(
       (program) =>
-        program.department_id === departmentId,
+        program.department_id ===
+        departmentId,
     );
   }, [programs, departmentId]);
 
+  /* --------------------------------
+     Program
+  --------------------------------- */
+
   const defaultProgram =
     availablePrograms.find(
-      (program) => program.code === "BSC-CS",
+      (program) =>
+        program.code === "BSC-CS",
     ) ?? availablePrograms[0];
 
   const [programId, setProgramId] =
-    useState(defaultProgram?.id ?? "");
+    useState(
+      defaultProgram?.id ?? "",
+    );
+
+  /* --------------------------------
+     Semesters for selected program
+  --------------------------------- */
 
   const availableSemesters = useMemo(() => {
     if (!programId) {
@@ -100,7 +131,8 @@ export default function OnboardingForm({
     return semesters
       .filter(
         (semester) =>
-          semester.program_id === programId,
+          semester.program_id ===
+          programId,
       )
       .sort(
         (a, b) =>
@@ -109,13 +141,26 @@ export default function OnboardingForm({
       );
   }, [semesters, programId]);
 
+  /* --------------------------------
+     Semester
+  --------------------------------- */
+
   const [semesterId, setSemesterId] =
     useState("");
 
-  const currentYear = new Date().getFullYear();
+  /* --------------------------------
+     Enrollment year
+  --------------------------------- */
+
+  const currentYear =
+    new Date().getFullYear();
 
   const [enrollmentYear, setEnrollmentYear] =
     useState(String(currentYear));
+
+  /* --------------------------------
+     Server action
+  --------------------------------- */
 
   const [state, formAction, isPending] =
     useActionState(
@@ -125,19 +170,39 @@ export default function OnboardingForm({
 
   const errors = state?.errors ?? {};
 
+  /* --------------------------------
+     Department change
+  --------------------------------- */
+
   const handleDepartmentChange = (
     value: string,
   ) => {
     setDepartmentId(value);
 
-    const firstProgram = programs.find(
-      (program) =>
-        program.department_id === value,
+    const matchingPrograms =
+      programs.filter(
+        (program) =>
+          program.department_id ===
+          value,
+      );
+
+    const preferredProgram =
+      matchingPrograms.find(
+        (program) =>
+          program.code === "BSC-CS",
+      ) ??
+      matchingPrograms[0];
+
+    setProgramId(
+      preferredProgram?.id ?? "",
     );
 
-    setProgramId(firstProgram?.id ?? "");
     setSemesterId("");
   };
+
+  /* --------------------------------
+     Program change
+  --------------------------------- */
 
   const handleProgramChange = (
     value: string,
@@ -146,8 +211,12 @@ export default function OnboardingForm({
     setSemesterId("");
   };
 
+  /* --------------------------------
+     Continue to Step 2
+  --------------------------------- */
+
   const handleContinue = () => {
-    if (!fullName.trim()) {
+    if (fullName.trim().length < 2) {
       return;
     }
 
@@ -160,7 +229,9 @@ export default function OnboardingForm({
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      {/* Progress indicator */}
+      {/* =================================
+          Progress indicator
+      ================================== */}
 
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -230,7 +301,9 @@ export default function OnboardingForm({
         </div>
       </div>
 
-      {/* Server message */}
+      {/* =================================
+          Server message
+      ================================== */}
 
       {state?.message && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -238,12 +311,14 @@ export default function OnboardingForm({
         </div>
       )}
 
-      {/* Form */}
+      {/* =================================
+          Form
+      ================================== */}
 
       <form action={formAction}>
-        {/* ================================
+        {/* =================================
             STEP 1
-        ================================= */}
+        ================================== */}
 
         {step === 1 && (
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -253,7 +328,8 @@ export default function OnboardingForm({
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Tell us a little about yourself.
+                Tell us a little about
+                yourself.
               </p>
             </div>
 
@@ -273,10 +349,13 @@ export default function OnboardingForm({
                 type="text"
                 value={fullName}
                 onChange={(event) =>
-                  setFullName(event.target.value)
+                  setFullName(
+                    event.target.value,
+                  )
                 }
                 placeholder="Enter your full name"
                 autoComplete="name"
+                required
                 className="w-full rounded-xl border px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
@@ -306,8 +385,9 @@ export default function OnboardingForm({
               />
 
               <p className="mt-1 text-xs text-gray-500">
-                Your email comes from your account and
-                cannot be changed here.
+                Your email comes from your
+                account and cannot be changed
+                here.
               </p>
             </div>
 
@@ -330,7 +410,9 @@ export default function OnboardingForm({
                 type="tel"
                 value={phone}
                 onChange={(event) =>
-                  setPhone(event.target.value)
+                  setPhone(
+                    event.target.value,
+                  )
                 }
                 placeholder="Enter your phone number"
                 autoComplete="tel"
@@ -366,6 +448,7 @@ export default function OnboardingForm({
                 }
                 placeholder="Enter your university student number"
                 autoComplete="off"
+                required
                 className="w-full rounded-xl border px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
@@ -382,7 +465,7 @@ export default function OnboardingForm({
               type="button"
               onClick={handleContinue}
               disabled={
-                !fullName.trim() ||
+                fullName.trim().length < 2 ||
                 !studentNumber.trim()
               }
               className="w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
@@ -392,9 +475,9 @@ export default function OnboardingForm({
           </div>
         )}
 
-        {/* ================================
+        {/* =================================
             STEP 2
-        ================================= */}
+        ================================== */}
 
         {step === 2 && (
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -404,8 +487,9 @@ export default function OnboardingForm({
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Select your department, program,
-                semester and enrollment year.
+                Select your department,
+                program, semester and
+                enrollment year.
               </p>
             </div>
 
@@ -448,6 +532,7 @@ export default function OnboardingForm({
                     event.target.value,
                   )
                 }
+                required
                 className="w-full rounded-xl border bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="">
@@ -494,6 +579,7 @@ export default function OnboardingForm({
                   )
                 }
                 disabled={!departmentId}
+                required
                 className="w-full rounded-xl border bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
               >
                 <option value="">
@@ -543,14 +629,17 @@ export default function OnboardingForm({
                 }
                 disabled={
                   !programId ||
-                  availableSemesters.length === 0
+                  availableSemesters.length ===
+                    0
                 }
+                required
                 className="w-full rounded-xl border bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
               >
                 <option value="">
                   {!programId
                     ? "Select Program First"
-                    : availableSemesters.length === 0
+                    : availableSemesters.length ===
+                        0
                       ? "No Semesters Available"
                       : "Select Semester"}
                 </option>
@@ -563,7 +652,8 @@ export default function OnboardingForm({
                     >
                       Semester{" "}
                       {semester.semester_number}{" "}
-                      ({semester.academic_year})
+                      (
+                      {semester.academic_year})
                     </option>
                   ),
                 )}
@@ -598,6 +688,7 @@ export default function OnboardingForm({
                     event.target.value,
                   )
                 }
+                required
                 className="w-full rounded-xl border px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 

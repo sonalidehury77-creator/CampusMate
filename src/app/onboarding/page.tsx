@@ -31,17 +31,12 @@ export default async function OnboardingPage() {
     error: profileError,
   } = await supabase
     .from("profiles")
-    .select(
-      "full_name, email, phone",
-    )
+    .select("full_name, email, phone")
     .eq("id", userId)
     .maybeSingle();
 
   if (profileError) {
-    console.error(
-      "Profile loading error:",
-      profileError,
-    );
+    console.error("Profile loading error:", profileError);
 
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-10">
@@ -139,9 +134,7 @@ export default async function OnboardingPage() {
     error: programsError,
   } = await supabase
     .from("programs")
-    .select(
-      "id, department_id, name, code, duration",
-    )
+    .select("id, department_id, name, code")
     .order("name");
 
   if (programsError) {
@@ -281,12 +274,9 @@ export default async function OnboardingPage() {
 
         <OnboardingForm
           profile={{
-            full_name:
-              profile?.full_name ?? "",
-            email:
-              profile?.email ?? "",
-            phone:
-              profile?.phone ?? "",
+            full_name: profile?.full_name ?? "",
+            email: profile?.email ?? "",
+            phone: profile?.phone ?? "",
           }}
           departments={departments ?? []}
           programs={programs ?? []}
