@@ -32,22 +32,24 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // Get and verify the user's authentication claims.
-  const { data: claimsData, error } = await supabase.auth.getClaims();
+  const { data: claimsData, error } =
+    await supabase.auth.getClaims();
 
   const claims = error ? null : claimsData?.claims;
 
   const pathname = request.nextUrl.pathname;
 
-  // These routes can be accessed without logging in.
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/onboarding" ||
     pathname.startsWith("/auth");
 
-  // If the user is not logged in and tries to access
-  // a protected page, send them to login.
+  /*
+   * Not logged in:
+   * protected pages -> /login
+   */
   if (!claims && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
 
@@ -56,16 +58,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If the user is already logged in and tries to visit
-  // login or register, send them to the dashboard.
-  if (
-    claims &&
-    (pathname === "/login" || pathname === "/register")
-  ) {
-    return NextResponse.redirect(
-      new URL("/dashboard", request.url),
-    );
-  }
+  /*
+   * IMPORTANT:
+   * Do NOT redirect authenticated users away from /login.
+   *
+   * This allows us to manually open /login even when
+   * a previous Supabase session still exists.
+   */
 
   return response;
 }
