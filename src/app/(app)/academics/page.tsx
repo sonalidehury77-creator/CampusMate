@@ -1,42 +1,81 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { redirect } from "next/navigation";
 
-export default function AcademicsPage() {
+import { AcademicEmptyState } from "@/components/academics/academic-empty-state";
+import { AcademicOverview } from "@/components/academics/academic-overview";
+import { createClient } from "@/lib/supabase/server";
+import { getAcademicData } from "@/services/academics/academic-data";
+
+import { AcademicSubjects } from "./academic-subjects";
+
+export default async function AcademicsPage() {
+  const supabase = await createClient();
+
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
+
+  const claims = claimsError
+    ? null
+    : claimsData?.claims;
+
+  if (!claims?.sub) {
+    redirect("/login");
+  }
+
+  const data = await getAcademicData(
+    claims.sub,
+  );
+
+  if (!data.semester) {
+    return (
+      <main className="space-y-6">
+        <AcademicEmptyState
+          title="Academic information is incomplete"
+          description="Your current semester could not be loaded. Please check your student profile and academic setup."
+        />
+      </main>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Academics
-        </h1>
+    <main className="space-y-8">
+      <AcademicOverview
+        semesterNumber={
+          data.semester.semester_number
+        }
+        academicYear={
+          data.semester.academic_year
+        }
+        programName={
+          data.program?.name ?? null
+        }
+        programCode={
+          data.program?.code ?? null
+        }
+        departmentName={
+          data.department?.name ?? null
+        }
+        subjectCount={data.subjects.length}
+        totalCredits={data.totalCredits}
+        overallProgress={data.overallProgress}
+        completedSubjects={
+          data.completedSubjects
+        }
+      />
 
-        <p className="mt-2 text-slate-500">
-          Manage your academic information from one place.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Academics module</CardTitle>
-
-          <CardDescription>
-            This module will be implemented in a future
-            CampusMate phase.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-600">
-            The UI foundation is ready for subjects,
-            syllabus, faculty, progress, and academic
-            analytics.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+      {data.subjects.length === 0 ? (
+        <AcademicEmptyState
+          title="No subjects available yet"
+          description={
+            data.usingStudentSubjectMapping
+              ? "Your student subject list is currently empty."
+              : "No subjects have been added to your current semester yet. Once academic master data is added, they will appear here automatically."
+          }
+        />
+      ) : (
+        <AcademicSubjects
+          subjects={data.subjects}
+        />
+      )}
+    </main>
   );
 }
