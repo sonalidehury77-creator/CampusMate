@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/layout/page-header";
+import { AcademicHealth } from "@/components/dashboard/academic-health";
+import { AttendanceOverview } from "@/components/dashboard/attendance-overview";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { DashboardNotifications } from "@/components/dashboard/dashboard-notifications";
+import { DashboardStatCard } from "@/components/dashboard/dashboard-stat-card";
+import { NextClassCard } from "@/components/dashboard/next-class-card";
+import { TodaySchedule } from "@/components/dashboard/today-schedule";
+import { UpcomingAssignments } from "@/components/dashboard/upcoming-assignments";
 import { createClient } from "@/lib/supabase/server";
+import { getDashboardData } from "@/services/dashboard/dashboard-data";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,109 +25,79 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const userId = claims.sub;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email, role")
-    .eq("id", userId)
-    .single();
-
-  const { data: student } = await supabase
-    .from("students")
-    .select(
-      `
-        student_number,
-        current_semester,
-        program:programs (
-          name,
-          code
-        ),
-        semester:semesters (
-          semester_number,
-          academic_year
-        )
-      `,
-    )
-    .eq("profile_id", userId)
-    .single();
+  const data = await getDashboardData(claims.sub);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Welcome${
-          profile?.full_name
-            ? `, ${profile.full_name}`
-            : ""
-        }!`}
-        description="Your CampusMate student workspace."
-        actions={
-          <Badge variant="success">
-            {profile?.role ?? "student"}
-          </Badge>
-        }
+    <main className="space-y-6">
+      <DashboardHeader
+        fullName={data.profile.full_name ?? "Student"}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <p className="text-sm text-muted-foreground">
-            Student number
-          </p>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Current semester"
+          value={
+            data.semester
+              ? `Semester ${data.semester.semester_number}`
+              : "—"
+          }
+          description={
+            data.semester?.academic_year ??
+            "Academic information"
+          }
+          icon="🎓"
+        />
 
-          <p className="mt-2 text-lg font-semibold">
-            {student?.student_number ??
-              "Not available"}
-          </p>
-        </Card>
+        <DashboardStatCard
+          title="Program"
+          value={data.program?.code ?? "—"}
+          description={
+            data.program?.name ??
+            "Program information"
+          }
+          icon="📚"
+        />
 
-        <Card>
-          <p className="text-sm text-muted-foreground">
-            Program
-          </p>
+        <DashboardStatCard
+          title="Student number"
+          value={data.student.student_number}
+          description="Your academic identity"
+          icon="🪪"
+        />
 
-          <p className="mt-2 text-lg font-semibold">
-            {student?.program?.name ??
-              "Not available"}
-          </p>
-        </Card>
+        <DashboardStatCard
+          title="Department"
+          value={data.department?.code ?? "—"}
+          description={
+            data.department?.name ??
+            "Department information"
+          }
+          icon="🏫"
+        />
+      </section>
 
-        <Card>
-          <p className="text-sm text-muted-foreground">
-            Semester
-          </p>
+      <NextClassCard />
 
-          <p className="mt-2 text-lg font-semibold">
-            {student?.semester
-              ? `Semester ${student.semester.semester_number}`
-              : "Not available"}
-          </p>
-        </Card>
+      <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <TodaySchedule items={[]} />
 
-        <Card>
-          <p className="text-sm text-muted-foreground">
-            Academic year
-          </p>
+        <UpcomingAssignments assignments={[]} />
+      </section>
 
-          <p className="mt-2 text-lg font-semibold">
-            {student?.semester?.academic_year ??
-              "Not available"}
-          </p>
-        </Card>
-      </div>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <AttendanceOverview
+          overallPercentage={null}
+          subjects={[]}
+        />
 
-      <Card>
-        <h2 className="text-lg font-semibold">
-          CampusMate is ready
-        </h2>
+        <AcademicHealth
+          attendance={null}
+          assignmentCompletion={null}
+          studyProgress={null}
+        />
+      </section>
 
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Your student identity is now connected to
-          CampusMate. Future modules such as subjects,
-          timetable, assignments, attendance, resources
-          and academic analytics will use this academic
-          profile.
-        </p>
-      </Card>
-    </div>
+      <DashboardNotifications notifications={[]} />
+    </main>
   );
 }
