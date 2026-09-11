@@ -1,40 +1,46 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { AttendancePageContent } from "@/components/attendance/attendance-page-content";
+import { createClient } from "@/lib/supabase/server";
+import { getAttendanceData } from "@/services/attendance/attendance-data";
 
-export default function AttendancePage() {
+export const dynamic =
+  "force-dynamic";
+
+export default async function AttendancePage() {
+  const supabase =
+    await createClient();
+
+  const {
+    data: claimsData,
+    error: claimsError,
+  } =
+    await supabase.auth.getClaims();
+
+  const claims =
+    claimsError
+      ? null
+      : claimsData?.claims;
+
+  if (!claims?.sub) {
+    return null;
+  }
+
+  const data =
+    await getAttendanceData(
+      claims.sub,
+    );
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Attendance
-        </h1>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Academics"
+        title="Attendance"
+        description="Monitor your attendance, identify subjects that need attention, and plan upcoming classes intelligently."
+      />
 
-        <p className="mt-2 text-slate-500">
-          Monitor and manage your attendance from one place.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Attendance module</CardTitle>
-
-          <CardDescription>
-            This module will be implemented in a future CampusMate phase.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-600">
-            The UI foundation is ready for attendance records, subject-wise
-            percentages, attendance history, and shortage alerts.
-          </p>
-        </CardContent>
-      </Card>
+      <AttendancePageContent
+        data={data}
+      />
     </div>
   );
 }
