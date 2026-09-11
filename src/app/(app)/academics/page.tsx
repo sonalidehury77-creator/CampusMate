@@ -1,17 +1,18 @@
 import { redirect } from "next/navigation";
 
-import { AcademicEmptyState } from "@/components/academics/academic-empty-state";
 import { AcademicOverview } from "@/components/academics/academic-overview";
+import { SubjectGrid } from "@/components/academics/subject-grid";
+import { PageHeader } from "@/components/layout/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getAcademicData } from "@/services/academics/academic-data";
-
-import { AcademicSubjects } from "./academic-subjects";
 
 export default async function AcademicsPage() {
   const supabase = await createClient();
 
-  const { data: claimsData, error: claimsError } =
-    await supabase.auth.getClaims();
+  const {
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims();
 
   const claims = claimsError
     ? null
@@ -25,57 +26,32 @@ export default async function AcademicsPage() {
     claims.sub,
   );
 
-  if (!data.semester) {
-    return (
-      <main className="space-y-6">
-        <AcademicEmptyState
-          title="Academic information is incomplete"
-          description="Your current semester could not be loaded. Please check your student profile and academic setup."
-        />
-      </main>
-    );
-  }
-
   return (
     <main className="space-y-8">
-      <AcademicOverview
-        semesterNumber={
-          data.semester.semester_number
-        }
-        academicYear={
-          data.semester.academic_year
-        }
-        programName={
-          data.program?.name ?? null
-        }
-        programCode={
-          data.program?.code ?? null
-        }
-        departmentName={
-          data.department?.name ?? null
-        }
-        subjectCount={data.subjects.length}
-        totalCredits={data.totalCredits}
-        overallProgress={data.overallProgress}
-        completedSubjects={
-          data.completedSubjects
-        }
+      <PageHeader
+        eyebrow="Academics"
+        title="Your academic workspace"
+        description="Track your current semester, subjects, syllabus and study progress in one place."
       />
 
-      {data.subjects.length === 0 ? (
-        <AcademicEmptyState
-          title="No subjects available yet"
-          description={
-            data.usingStudentSubjectMapping
-              ? "Your student subject list is currently empty."
-              : "No subjects have been added to your current semester yet. Once academic master data is added, they will appear here automatically."
-          }
-        />
-      ) : (
-        <AcademicSubjects
+      <AcademicOverview data={data} />
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">
+            Current semester subjects
+          </h2>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Open a subject to view its syllabus and
+            update your progress.
+          </p>
+        </div>
+
+        <SubjectGrid
           subjects={data.subjects}
         />
-      )}
+      </section>
     </main>
   );
 }

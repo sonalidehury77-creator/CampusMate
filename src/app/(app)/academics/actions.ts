@@ -5,39 +5,21 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
-const updateUnitProgressSchema = z.object({
+const progressSchema = z.object({
   subjectId: z.string().uuid(),
-  unitNumber: z.coerce
-    .number()
-    .int()
-    .positive(),
-  progressPercentage: z.coerce
-    .number()
-    .min(0)
-    .max(100),
-  completed: z.boolean(),
+  progress: z.coerce.number().min(0).max(100),
 });
 
-export async function updateUnitProgress(
-  input: unknown,
+const unitProgressSchema = z.object({
+  subjectId: z.string().uuid(),
+  unitNumber: z.coerce.number().int().positive(),
+  progress: z.coerce.number().min(0).max(100),
+  completed: z.coerce.boolean(),
+});
+
+export async function updateSubjectProgress(
+  formData: FormData,
 ) {
-  const parsed =
-    updateUnitProgressSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return {
-      success: false,
-      message: "Invalid progress information.",
-    };
-  }
-
-  const {
-    subjectId,
-    unitNumber,
-    progressPercentage,
-    completed,
-  } = parsed.data;
-
   const supabase = await createClient();
 
   const { data: claimsData, error: claimsError } =
@@ -48,59 +30,143 @@ export async function updateUnitProgress(
     : claimsData?.claims;
 
   if (!claims?.sub) {
-    return {
-      success: false,
-      message: "You must be logged in.",
-    };
+    throw new Error("You must be logged in.");
+  }
+
+  const parsed = progressSchema.safeParse({
+    subjectId: formData.get("subjectId"),
+    progress: formData.get("progress"),
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid progress value.");
   }
 
   const { data: student, error: studentError } =
     await supabase
       .from("students")
-      .select("id")
+      .select("id, semester_id")
       .eq("profile_id", claims.sub)
       .single();
 
   if (studentError || !student) {
-    return {
-      success: false,
-      message: "Student profile not found.",
-    };
+    throw new Error("Student record not found.");
   }
 
-  /*
-   * Make sure the requested unit actually belongs
-   * to the requested subject.
-   */
+  const { data: subject, error: subjectError } =
+    await supabase
+      .from("subjects")
+      .select("id")
+      .eq("id", parsed.data.subjectId)
+      .eq("semester_id", student.semester_id)
+      .single();
+
+  if (subjectError || !subject) {
+    throw new Error("Invalid subject.");
+  }
+
+  const { error } = await supabase
+    .from("student_subject_progress")
+    .upsert(
+      {
+        student_id: student.id,
+        subject_id: parsed.data.subjectId,
+        progress_percentage: parsed.data.progress,
+      },
+      {
+        onConflict: "student_id,subject_id",
+      },
+    );
+
+  if (error) {
+    throw new Error(
+      "Unable to update subject progress.",
+    );
+  }
+
+  revalidatePath("/academics");
+  revalidatePath(
+    `/academics/${parsed.data.subjectId}`,
+  );
+  revalidatePath("/dashboard");
+}
+
+export async function updateUnitProgress(
+  formData: FormData,
+) {
+  const supabase = await createClient();
+
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
+
+  const claims = claimsError
+    ? null
+    : claimsData?.claims;
+
+  if (!claims?.sub) {
+    throw new Error("You must be logged in.");
+  }
+
+  const parsed = unitProgressSchema.safeParse({
+    subjectId: formData.get("subjectId"),
+    unitNumber: formData.get("unitNumber"),
+    progress: formData.get("progress"),
+    completed:
+      formData.get("completed") === "true",
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid unit progress.");
+  }
+
+  const { data: student, error: studentError } =
+    await supabase
+      .from("students")
+      .select("id, semester_id")
+      .eq("profile_id", claims.sub)
+      .single();
+
+  if (studentError || !student) {
+    throw new Error("Student record not found.");
+  }
+
+  const { data: subject, error: subjectError } =
+    await supabase
+      .from("subjects")
+      .select("id")
+      .eq("id", parsed.data.subjectId)
+      .eq("semester_id", student.semester_id)
+      .single();
+
+  if (subjectError || !subject) {
+    throw new Error("Invalid subject.");
+  }
+
   const { data: unit, error: unitError } =
     await supabase
       .from("syllabus_units")
       .select("id")
-      .eq("subject_id", subjectId)
-      .eq("unit_number", unitNumber)
+      .eq("subject_id", parsed.data.subjectId)
+      .eq(
+        "unit_number",
+        parsed.data.unitNumber,
+      )
       .single();
 
   if (unitError || !unit) {
-    return {
-      success: false,
-      message: "Syllabus unit not found.",
-    };
+    throw new Error("Invalid syllabus unit.");
   }
 
-  const finalProgress = completed
-    ? 100
-    : progressPercentage;
-
-  const { error: upsertError } = await supabase
+  const { error } = await supabase
     .from("unit_progress")
     .upsert(
       {
         student_id: student.id,
-        subject_id: subjectId,
-        unit_number: unitNumber,
-        progress_percentage: finalProgress,
-        completed:
-          completed || finalProgress === 100,
+        subject_id: parsed.data.subjectId,
+        unit_number: parsed.data.unitNumber,
+        progress_percentage:
+          parsed.data.progress,
+        completed: parsed.data.completed,
       },
       {
         onConflict:
@@ -108,79 +174,17 @@ export async function updateUnitProgress(
       },
     );
 
-  if (upsertError) {
-    console.error(
-      "Unit progress update error:",
-      upsertError,
+  if (error) {
+    throw new Error(
+      "Unable to update unit progress.",
     );
-
-    return {
-      success: false,
-      message: "Unable to save unit progress.",
-    };
   }
 
-  /*
-   * Recalculate subject progress from all units.
-   */
-  const { data: unitProgressRows } =
-    await supabase
-      .from("unit_progress")
-      .select(
-        "progress_percentage",
-      )
-      .eq("student_id", student.id)
-      .eq("subject_id", subjectId);
-
-  const averageProgress =
-    unitProgressRows &&
-    unitProgressRows.length > 0
-      ? Math.round(
-          unitProgressRows.reduce(
-            (sum, row) =>
-              sum +
-              Number(
-                row.progress_percentage,
-              ),
-            0,
-          ) / unitProgressRows.length,
-        )
-      : 0;
-
-  const { error: subjectProgressError } =
-    await supabase
-      .from("student_subject_progress")
-      .upsert(
-        {
-          student_id: student.id,
-          subject_id: subjectId,
-          progress_percentage:
-            averageProgress,
-        },
-        {
-          onConflict:
-            "student_id,subject_id",
-        },
-      );
-
-  if (subjectProgressError) {
-    console.error(
-      "Subject progress update error:",
-      subjectProgressError,
-    );
-
-    return {
-      success: false,
-      message:
-        "Unit saved, but subject progress could not be updated.",
-    };
-  }
+  revalidatePath(
+    `/academics/${parsed.data.subjectId}`,
+  );
 
   revalidatePath("/academics");
-  revalidatePath("/dashboard");
 
-  return {
-    success: true,
-    message: "Progress updated.",
-  };
+  revalidatePath("/dashboard");
 }

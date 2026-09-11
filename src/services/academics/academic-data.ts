@@ -3,10 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 export async function getAcademicData(userId: string) {
   const supabase = await createClient();
 
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("id", userId)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error("Unable to load your profile.");
+  }
+
   const { data: student, error: studentError } = await supabase
     .from("students")
     .select(
-      "id, student_number, program_id, semester_id, enrollment_year, current_semester",
+      "id, student_number, enrollment_year, current_semester, program_id, semester_id",
     )
     .eq("profile_id", userId)
     .single();
@@ -17,7 +27,7 @@ export async function getAcademicData(userId: string) {
 
   const { data: program } = await supabase
     .from("programs")
-    .select("id, name, code, department_id")
+    .select("id, name, code, duration, department_id")
     .eq("id", student.program_id)
     .single();
 
@@ -31,243 +41,257 @@ export async function getAcademicData(userId: string) {
 
   const { data: semester } = await supabase
     .from("semesters")
-    .select(
-      "id, semester_number, academic_year, program_id",
-    )
+    .select("id, semester_number, academic_year")
     .eq("id", student.semester_id)
     .single();
 
-  if (!semester) {
-    return {
-      student,
-      program,
-      department,
-      semester: null,
-      subjects: [],
-    };
+  const { data: subjects, error: subjectsError } = await supabase
+    .from("subjects")
+    .select("id, code, name, description, credits")
+    .eq("semester_id", student.semester_id)
+    .order("code");
+
+  if (subjectsError) {
+    throw new Error("Unable to load your subjects.");
   }
 
-  /*
-   * First preference:
-   * subjects explicitly assigned to this student
-   * for the current academic year.
-   */
-  const { data: studentSubjects } = await supabase
+  const { data: enrolledSubjects } = await supabase
     .from("student_subjects")
-    .select("id, subject_id, academic_year")
-    .eq("student_id", student.id)
-    .eq("academic_year", semester.academic_year);
+    .select("subject_id, academic_year")
+    .eq("student_id", student.id);
 
-  let subjectIds =
-    studentSubjects?.map((item) => item.subject_id) ?? [];
+  const enrolledSubjectIds = new Set(
+    (enrolledSubjects ?? []).map((item) => item.subject_id),
+  );
 
-  /*
-   * Fallback:
-   * if no explicit student_subjects exist, show the subjects
-   * belonging to the student's current semester.
-   */
-  if (subjectIds.length === 0) {
-    const { data: semesterSubjects } = await supabase
-      .from("subjects")
-      .select(
-        "id, code, name, description, credits, department_id, semester_id",
-      )
-      .eq("semester_id", semester.id)
-      .order("code");
+  const { data: progressRows } = await supabase
+    .from("student_subject_progress")
+    .select("subject_id, progress_percentage")
+    .eq("student_id", student.id);
 
-    subjectIds =
-      semesterSubjects?.map((subject) => subject.id) ?? [];
-  }
+  const progressMap = new Map(
+    (progressRows ?? []).map((item) => [
+      item.subject_id,
+      Number(item.progress_percentage),
+    ]),
+  );
 
-  let subjects: Array<{
-    id: string;
-    code: string;
-    name: string;
-    description: string | null;
-    credits: number | null;
-    department_id: string;
-    semester_id: string;
-    progress: number;
-    units: Array<{
-      id: string;
-      unit_number: number;
-      title: string;
-      description: string | null;
-      progress: number;
-      completed: boolean;
-      topics: Array<{
-        id: string;
-        title: string;
-        description: string | null;
-        sequence_number: number;
-      }>;
-    }>;
-  }> = [];
+  const subjectList = (subjects ?? []).map((subject) => ({
+    id: subject.id,
+    code: subject.code,
+    name: subject.name,
+    description: subject.description,
+    credits: subject.credits ? Number(subject.credits) : null,
+    progress: progressMap.get(subject.id) ?? 0,
+    isEnrolled:
+      enrolledSubjectIds.size === 0 ||
+      enrolledSubjectIds.has(subject.id),
+  }));
 
-  if (subjectIds.length > 0) {
-    const { data: subjectRows } = await supabase
-      .from("subjects")
-      .select(
-        "id, code, name, description, credits, department_id, semester_id",
-      )
-      .in("id", subjectIds)
-      .eq("semester_id", semester.id)
-      .order("code");
+  const visibleSubjects =
+    enrolledSubjectIds.size > 0
+      ? subjectList.filter((subject) => subject.isEnrolled)
+      : subjectList;
 
-    const { data: subjectProgressRows } = await supabase
-      .from("student_subject_progress")
-      .select(
-        "subject_id, progress_percentage",
-      )
-      .eq("student_id", student.id)
-      .in("subject_id", subjectIds);
-
-    const { data: unitRows } = await supabase
-      .from("syllabus_units")
-      .select(
-        "id, subject_id, unit_number, title, description",
-      )
-      .in("subject_id", subjectIds)
-      .order("unit_number");
-
-    const unitIds =
-      unitRows?.map((unit) => unit.id) ?? [];
-
-    const { data: topicRows } =
-      unitIds.length > 0
-        ? await supabase
-            .from("syllabus_topics")
-            .select(
-              "id, unit_id, title, description, sequence_number",
-            )
-            .in("unit_id", unitIds)
-            .order("sequence_number")
-        : { data: [] };
-
-    const { data: unitProgressRows } = await supabase
-      .from("unit_progress")
-      .select(
-        "subject_id, unit_number, progress_percentage, completed",
-      )
-      .eq("student_id", student.id)
-      .in("subject_id", subjectIds);
-
-    const progressMap = new Map(
-      (subjectProgressRows ?? []).map((row) => [
-        row.subject_id,
-        Number(row.progress_percentage),
-      ]),
-    );
-
-    const unitProgressMap = new Map(
-      (unitProgressRows ?? []).map((row) => [
-        `${row.subject_id}:${row.unit_number}`,
-        {
-          progress: Number(row.progress_percentage),
-          completed: row.completed,
-        },
-      ]),
-    );
-
-    const topicsByUnit = new Map<
-      string,
-      typeof topicRows
-    >();
-
-    for (const topic of topicRows ?? []) {
-      const existing =
-        topicsByUnit.get(topic.unit_id) ?? [];
-
-      existing.push(topic);
-      topicsByUnit.set(topic.unit_id, existing);
-    }
-
-    subjects = (subjectRows ?? []).map((subject) => {
-      const units = (unitRows ?? [])
-        .filter(
-          (unit) => unit.subject_id === subject.id,
-        )
-        .map((unit) => {
-          const progress =
-            unitProgressMap.get(
-              `${subject.id}:${unit.unit_number}`,
-            );
-
-          return {
-            id: unit.id,
-            unit_number: unit.unit_number,
-            title: unit.title,
-            description: unit.description,
-            progress: progress?.progress ?? 0,
-            completed: progress?.completed ?? false,
-            topics:
-              topicsByUnit.get(unit.id) ?? [],
-          };
-        });
-
-      let progress =
-        progressMap.get(subject.id) ?? 0;
-
-      /*
-       * If unit progress exists, use it as the more
-       * detailed source of truth for display.
-       */
-      if (units.length > 0) {
-        progress =
-          units.reduce(
-            (sum, unit) => sum + unit.progress,
-            0,
-          ) / units.length;
-      }
-
-      return {
-        id: subject.id,
-        code: subject.code,
-        name: subject.name,
-        description: subject.description,
-        credits:
-          subject.credits === null
-            ? null
-            : Number(subject.credits),
-        department_id: subject.department_id,
-        semester_id: subject.semester_id,
-        progress: Math.round(progress),
-        units,
-      };
-    });
-  }
-
-  const totalCredits = subjects.reduce(
-    (sum, subject) =>
-      sum + (subject.credits ?? 0),
+  const totalCredits = visibleSubjects.reduce(
+    (total, subject) => total + (subject.credits ?? 0),
     0,
   );
 
   const overallProgress =
-    subjects.length > 0
-      ? Math.round(
-          subjects.reduce(
-            (sum, subject) =>
-              sum + subject.progress,
-            0,
-          ) / subjects.length,
-        )
+    visibleSubjects.length > 0
+      ? visibleSubjects.reduce(
+          (total, subject) => total + subject.progress,
+          0,
+        ) / visibleSubjects.length
       : 0;
 
-  const completedSubjects = subjects.filter(
+  const completedSubjects = visibleSubjects.filter(
     (subject) => subject.progress >= 100,
   ).length;
 
+  const needsAttentionSubjects = visibleSubjects.filter(
+    (subject) => subject.progress < 50,
+  ).length;
+
   return {
-    student,
-    program,
-    department,
-    semester,
-    subjects,
-    totalCredits,
+    profile: {
+      fullName: profile.full_name ?? "Student",
+      email: profile.email,
+      studentNumber: student.student_number,
+      enrollmentYear: student.enrollment_year,
+      currentSemester: student.current_semester,
+
+      department: department
+        ? {
+            id: department.id,
+            name: department.name,
+            code: department.code,
+          }
+        : null,
+
+      program: program
+        ? {
+            id: program.id,
+            name: program.name,
+            code: program.code,
+            duration: program.duration,
+          }
+        : null,
+
+      semester: semester
+        ? {
+            id: semester.id,
+            semesterNumber: semester.semester_number,
+            academicYear: semester.academic_year,
+          }
+        : null,
+    },
+
+    subjects: visibleSubjects,
     overallProgress,
+    totalCredits,
     completedSubjects,
-    usingStudentSubjectMapping:
-      (studentSubjects?.length ?? 0) > 0,
+    needsAttentionSubjects,
+  };
+}
+
+export async function getAcademicSubjectDetails(
+  userId: string,
+  subjectId: string,
+) {
+  const supabase = await createClient();
+
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("id, semester_id")
+    .eq("profile_id", userId)
+    .single();
+
+  if (studentError || !student) {
+    throw new Error("Unable to load your student information.");
+  }
+
+  const { data: subject, error: subjectError } = await supabase
+    .from("subjects")
+    .select("id, code, name, description, credits, semester_id")
+    .eq("id", subjectId)
+    .eq("semester_id", student.semester_id)
+    .single();
+
+  if (subjectError || !subject) {
+    throw new Error("Subject not found.");
+  }
+
+  const { data: progress } = await supabase
+    .from("student_subject_progress")
+    .select("progress_percentage")
+    .eq("student_id", student.id)
+    .eq("subject_id", subject.id)
+    .maybeSingle();
+
+  const { data: units, error: unitsError } = await supabase
+    .from("syllabus_units")
+    .select("id, unit_number, title, description")
+    .eq("subject_id", subject.id)
+    .order("unit_number");
+
+  if (unitsError) {
+    throw new Error("Unable to load the syllabus.");
+  }
+
+  const unitNumbers = (units ?? []).map(
+    (unit) => unit.unit_number,
+  );
+
+  const { data: unitProgress } =
+    unitNumbers.length > 0
+      ? await supabase
+          .from("unit_progress")
+          .select(
+            "unit_number, progress_percentage, completed",
+          )
+          .eq("student_id", student.id)
+          .eq("subject_id", subject.id)
+      : { data: [] };
+
+  const unitProgressMap = new Map(
+    (unitProgress ?? []).map((item) => [
+      item.unit_number,
+      {
+        progress: Number(item.progress_percentage),
+        completed: item.completed,
+      },
+    ]),
+  );
+
+  const unitIds = (units ?? []).map((unit) => unit.id);
+
+  const { data: topics } =
+    unitIds.length > 0
+      ? await supabase
+          .from("syllabus_topics")
+          .select(
+            "id, unit_id, title, description, sequence_number",
+          )
+          .in("unit_id", unitIds)
+          .order("sequence_number")
+      : { data: [] };
+
+  const topicsByUnit = new Map<
+    string,
+    Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      sequenceNumber: number;
+    }>
+  >();
+
+  for (const topic of topics ?? []) {
+    const existing = topicsByUnit.get(topic.unit_id) ?? [];
+
+    existing.push({
+      id: topic.id,
+      title: topic.title,
+      description: topic.description,
+      sequenceNumber: topic.sequence_number,
+    });
+
+    topicsByUnit.set(topic.unit_id, existing);
+  }
+
+  return {
+    subject: {
+      id: subject.id,
+      code: subject.code,
+      name: subject.name,
+      description: subject.description,
+      credits: subject.credits
+        ? Number(subject.credits)
+        : null,
+
+      progress: progress
+        ? Number(progress.progress_percentage)
+        : 0,
+
+      isEnrolled: true,
+    },
+
+    units: (units ?? []).map((unit) => {
+      const savedProgress = unitProgressMap.get(
+        unit.unit_number,
+      );
+
+      return {
+        id: unit.id,
+        unitNumber: unit.unit_number,
+        title: unit.title,
+        description: unit.description,
+        progress: savedProgress?.progress ?? 0,
+        completed: savedProgress?.completed ?? false,
+        topics: topicsByUnit.get(unit.id) ?? [],
+      };
+    }),
   };
 }
