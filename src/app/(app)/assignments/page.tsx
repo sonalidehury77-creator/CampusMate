@@ -1,40 +1,47 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { AssignmentFilters } from "@/components/assignments/assignment-filters";
+import { AssignmentStats } from "@/components/assignments/assignment-stats";
+import { createClient } from "@/lib/supabase/server";
+import { getAssignmentData } from "@/services/assignments/assignment-data";
 
-export default function AssignmentsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AssignmentsPage() {
+  const supabase = await createClient();
+
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
+
+  const claims = claimsError
+    ? null
+    : claimsData?.claims;
+
+  if (!claims?.sub) {
+    return null;
+  }
+
+  const data =
+    await getAssignmentData(
+      claims.sub,
+    );
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Assignments
-        </h1>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Academics"
+        title="Assignments"
+        description="Track deadlines, manage your progress, and keep every academic task under control."
+      />
 
-        <p className="mt-2 text-slate-500">
-          Track and manage your assignments from one place.
-        </p>
-      </div>
+      <AssignmentStats
+        stats={data.stats}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Assignments module</CardTitle>
-
-          <CardDescription>
-            This module will be implemented in a future CampusMate phase.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-600">
-            The UI foundation is ready for assignment deadlines, subjects,
-            submission status, priorities, and academic task tracking.
-          </p>
-        </CardContent>
-      </Card>
+      <AssignmentFilters
+        assignments={
+          data.assignments
+        }
+      />
     </div>
   );
 }

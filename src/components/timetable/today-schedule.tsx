@@ -34,22 +34,18 @@ export function TodaySchedule({
         </Card>
       ) : (
         <div className="space-y-3">
-          {data.todayEntries.map(
-            (entry) => (
-              <TimetableEntryCard
-                key={entry.id}
-                entry={entry}
-                isCurrent={
-                  data.currentClass?.id ===
-                  entry.id
-                }
-                isNext={
-                  data.nextClass?.id ===
-                  entry.id
-                }
-              />
-            ),
-          )}
+          {data.todayEntries.map((entry) => (
+            <TimetableEntryCard
+              key={entry.id}
+              entry={entry}
+              isCurrent={
+                data.currentClass?.id === entry.id
+              }
+              isNext={
+                data.nextClass?.id === entry.id
+              }
+            />
+          ))}
         </div>
       )}
     </section>
