@@ -1,40 +1,19 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { StudyPlannerPageClient } from "@/components/study-planner/study-planner-page-client";
+import { getStudyPlannerData } from "@/services/study-planner/study-planner-data";
 
-export default function StudyPlannerPage() {
+export default async function StudyPlannerPage() {
+  const data = await getStudyPlannerData();
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Study Planner
-        </h1>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Personal productivity"
+        title="Study Planner"
+        description="Plan your study time, organize academic tasks and build consistent focus habits."
+      />
 
-        <p className="mt-2 text-slate-500">
-          Plan, organize, and track your study activities from one place.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Study Planner module</CardTitle>
-
-          <CardDescription>
-            This module will be implemented in a future CampusMate phase.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-600">
-            The UI foundation is ready for study plans, tasks, goals,
-            schedules, progress tracking, and focused study sessions.
-          </p>
-        </CardContent>
-      </Card>
+      <StudyPlannerPageClient data={data} />
     </div>
   );
 }
