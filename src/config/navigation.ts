@@ -42,6 +42,12 @@ export const mainNavigation = [
   },
 
   {
+  section: "Resources",
+  label: "Notifications",
+  href: "/notifications",
+},
+
+  {
     section: "Resources",
     label: "Study Planner",
     href: "/study-planner",

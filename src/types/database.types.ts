@@ -1537,6 +1537,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notice_deadline_reminder: {
+        Args: {
+          p_message: string
+          p_notice_id: string
+          p_priority: string
+          p_profile_id: string
+          p_title: string
+        }
+        Returns: string
+      }
       get_my_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_faculty: { Args: never; Returns: boolean }

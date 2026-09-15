@@ -1,40 +1,38 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { NoticeSummary } from "@/components/notices/notice-summary";
+import { NoticesPageClient } from "@/components/notices/notices-page-client";
+import { getNoticesData } from "@/services/notices/notices-data";
 
-export default function NoticesPage() {
+export default async function NoticesPage() {
+  const data =
+    await getNoticesData();
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Notices
-        </h1>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Campus intelligence"
+        title="Smart Notices"
+        description="Never miss an important campus announcement, deadline, examination update, scholarship opportunity or placement notice."
+      />
 
-        <p className="mt-2 text-slate-500">
-          Stay updated with important campus and academic notices.
-        </p>
-      </div>
+      <NoticeSummary
+        total={data.summary.total}
+        urgent={data.summary.urgent}
+        important={
+          data.summary.important
+        }
+        upcomingDeadlines={
+          data.summary
+            .upcomingDeadlines
+        }
+        overdue={
+          data.summary.overdue
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Notices module</CardTitle>
-
-          <CardDescription>
-            This module will be implemented in a future CampusMate phase.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-600">
-            The UI foundation is ready for university notices, department
-            announcements, exam updates, deadlines, and important alerts.
-          </p>
-        </CardContent>
-      </Card>
+      <NoticesPageClient
+        data={data}
+      />
     </div>
   );
 }

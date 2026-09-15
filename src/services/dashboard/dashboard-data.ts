@@ -3,6 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 export async function getDashboardData(userId: string) {
   const supabase = await createClient();
 
+  const {
+  count: unreadNotificationCount,
+} = await supabase
+  .from("notifications")
+  .select("id", {
+    count: "exact",
+    head: true,
+  })
+  .is("read_at", null);
+
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id, full_name, email, role, avatar_url")
@@ -46,6 +56,8 @@ export async function getDashboardData(userId: string) {
     .single();
 
   return {
+    unreadNotificationCount:
+  unreadNotificationCount ?? 0,
     profile,
     student,
     program,
