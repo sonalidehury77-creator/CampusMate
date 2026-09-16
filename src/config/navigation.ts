@@ -30,6 +30,12 @@ export const mainNavigation = [
   },
 
   {
+  section: "Academics",
+  label: "Academic Health",
+  href: "/academic-health",
+},
+
+  {
     section: "Resources",
     label: "Resources",
     href: "/resources",
@@ -54,9 +60,9 @@ export const mainNavigation = [
   },
 
   {
-    section: "Intelligence",
-    label: "AI",
-    href: "/ai",
+  section: "Intelligence",
+  label: "CampusMate AI",
+  href: "/ai",
   },
 
   {

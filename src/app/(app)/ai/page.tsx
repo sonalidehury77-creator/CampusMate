@@ -1,41 +1,66 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { AIChat } from "@/components/ai/ai-chat";
+import { getAIData } from "@/services/ai/ai-data";
+import { getAIContext } from "@/services/ai/ai-context";
 
-export default function AIPage() {
+export default async function AIPage() {
+  const [data, context] =
+    await Promise.all([
+      getAIData(),
+      getAIContext(),
+    ]);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          AI
-        </h1>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="CampusMate intelligence"
+        title="CampusMate AI"
+        description="A context-aware academic assistant that understands your subjects, progress, assignments, attendance, timetable, exams and study workload."
+      />
 
-        <p className="mt-2 text-slate-500">
-          Get intelligent academic assistance through CampusMate AI.
-        </p>
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">
+            Subjects
+          </p>
+          <p className="mt-1 text-2xl font-bold">
+            {context.subjects.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">
+            Assignments
+          </p>
+          <p className="mt-1 text-2xl font-bold">
+            {context.assignments.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">
+            Upcoming exams
+          </p>
+          <p className="mt-1 text-2xl font-bold">
+            {context.exams.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">
+            Study tasks
+          </p>
+          <p className="mt-1 text-2xl font-bold">
+            {context.studyTasks.length}
+          </p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>AI module</CardTitle>
-
-          <CardDescription>
-            This module will be implemented in a future CampusMate phase.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-600">
-            The UI foundation is ready for AI study assistance, question
-            answering, summaries, personalized study plans, and academic
-            recommendations.
-          </p>
-        </CardContent>
-      </Card>
+      <AIChat
+        initialConversation={
+          data.activeConversation
+        }
+      />
     </div>
   );
 }
