@@ -13,7 +13,20 @@ export function Topbar() {
           CampusMate
         </Link>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/search"
+            className="hidden items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground transition hover:border-brand-300 hover:text-brand-700 sm:flex"
+          >
+            <span aria-hidden="true">🔎</span>
+
+            <span>Search</span>
+
+            <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">
+              Ctrl K
+            </kbd>
+          </Link>
+
           <LogoutButton />
         </div>
       </div>

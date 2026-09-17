@@ -60,6 +60,33 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p className="text-sm font-semibold text-brand-600">
+        Campus Search
+      </p>
+
+      <h2 className="mt-1 text-xl font-bold text-foreground">
+        Find anything across CampusMate.
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Search your subjects, assignments,
+        notices, timetable and study plans
+        from one place.
+      </p>
+    </div>
+
+    <a
+      href="/search"
+      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+    >
+      Search Campus
+    </a>
+  </div>
+</section>
+
       <section className="rounded-2xl border border-border bg-card p-6">
   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>

@@ -6,6 +6,12 @@ export const mainNavigation = [
   },
 
   {
+  section: "Overview",
+  label: "Global Search",
+  href: "/search",
+},
+
+  {
     section: "Academics",
     label: "Academics",
     href: "/academics",
