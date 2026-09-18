@@ -4,61 +4,53 @@ export const mainNavigation = [
     label: "Dashboard",
     href: "/dashboard",
   },
-
   {
-  section: "Overview",
-  label: "Global Search",
-  href: "/search",
-},
+    section: "Overview",
+    label: "Global Search",
+    href: "/search",
+  },
 
   {
     section: "Academics",
     label: "Academics",
     href: "/academics",
   },
-
   {
     section: "Academics",
     label: "Timetable",
     href: "/timetable",
   },
-
   {
     section: "Academics",
     label: "Assignments",
     href: "/assignments",
   },
-
   {
     section: "Academics",
     label: "Attendance",
     href: "/attendance",
   },
-
   {
-  section: "Academics",
-  label: "Academic Health",
-  href: "/academic-health",
-},
+    section: "Academics",
+    label: "Academic Health",
+    href: "/academic-health",
+  },
 
   {
     section: "Resources",
     label: "Resources",
     href: "/resources",
   },
-
   {
     section: "Resources",
     label: "Notices",
     href: "/notices",
   },
-
   {
-  section: "Resources",
-  label: "Notifications",
-  href: "/notifications",
-},
-
+    section: "Resources",
+    label: "Notifications",
+    href: "/notifications",
+  },
   {
     section: "Resources",
     label: "Study Planner",
@@ -66,14 +58,19 @@ export const mainNavigation = [
   },
 
   {
-  section: "Intelligence",
-  label: "CampusMate AI",
-  href: "/ai",
+    section: "Intelligence",
+    label: "CampusMate AI",
+    href: "/ai",
   },
 
   {
     section: "Account",
     label: "Profile",
     href: "/profile",
+  },
+  {
+    section: "Account",
+    label: "Notification Settings",
+    href: "/notification-settings",
   },
 ];

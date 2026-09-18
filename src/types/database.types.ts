@@ -760,40 +760,64 @@ export type Database = {
         Row: {
           ai_notifications: boolean
           assignment_notifications: boolean
+          assignment_reminder_days: number
           attendance_notifications: boolean
           email_notifications: boolean
           event_notifications: boolean
+          exam_reminder_days: number
           id: string
           notice_notifications: boolean
+          notice_reminder_days: number
           profile_id: string
           push_notifications: boolean
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string
+          quiet_hours_start: string
+          reminder_notifications: boolean
           timetable_notifications: boolean
+          timetable_reminder_minutes: number
           updated_at: string
         }
         Insert: {
           ai_notifications?: boolean
           assignment_notifications?: boolean
+          assignment_reminder_days?: number
           attendance_notifications?: boolean
           email_notifications?: boolean
           event_notifications?: boolean
+          exam_reminder_days?: number
           id?: string
           notice_notifications?: boolean
+          notice_reminder_days?: number
           profile_id: string
           push_notifications?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          reminder_notifications?: boolean
           timetable_notifications?: boolean
+          timetable_reminder_minutes?: number
           updated_at?: string
         }
         Update: {
           ai_notifications?: boolean
           assignment_notifications?: boolean
+          assignment_reminder_days?: number
           attendance_notifications?: boolean
           email_notifications?: boolean
           event_notifications?: boolean
+          exam_reminder_days?: number
           id?: string
           notice_notifications?: boolean
+          notice_reminder_days?: number
           profile_id?: string
           push_notifications?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          reminder_notifications?: boolean
           timetable_notifications?: boolean
+          timetable_reminder_minutes?: number
           updated_at?: string
         }
         Relationships: [
@@ -1022,6 +1046,57 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_reminders: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          id: string
+          notification_id: string | null
+          profile_id: string
+          reminder_key: string
+          reminder_kind: string
+          source_id: string
+          source_type: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          notification_id?: string | null
+          profile_id: string
+          reminder_key: string
+          reminder_kind: string
+          source_id: string
+          source_type: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          notification_id?: string | null
+          profile_id?: string
+          reminder_key?: string
+          reminder_kind?: string
+          source_id?: string
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_reminders_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_reminders_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1547,6 +1622,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_my_smart_reminders: { Args: never; Returns: number }
       get_my_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_faculty: { Args: never; Returns: boolean }
