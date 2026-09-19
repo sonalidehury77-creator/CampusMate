@@ -10,12 +10,23 @@ import { TodaySchedule } from "@/components/dashboard/today-schedule";
 import { UpcomingAssignments } from "@/components/dashboard/upcoming-assignments";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/services/dashboard/dashboard-data";
+import { generateMySmartReminders } from "@/services/notifications/reminder-engine";
 
 export default async function DashboardPage() {
+  // ============================================================
+  // 1. CREATE SUPABASE SERVER CLIENT
+  // ============================================================
+
   const supabase = await createClient();
 
-  const { data: claimsData, error: claimsError } =
-    await supabase.auth.getClaims();
+  // ============================================================
+  // 2. CHECK AUTHENTICATED SESSION
+  // ============================================================
+
+  const {
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims();
 
   const claims = claimsError
     ? null
@@ -25,15 +36,112 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const data = await getDashboardData(claims.sub);
+  // ============================================================
+  // 3. GENERATE SMART REMINDERS
+  //
+  // This runs only for the authenticated student.
+  //
+  // The database function handles deduplication, so refreshing
+  // the dashboard does not continuously create duplicate
+  // notifications.
+  // ============================================================
+
+  try {
+    await generateMySmartReminders();
+  } catch (error) {
+    console.error(
+      "Smart reminder generation failed:",
+      error,
+    );
+  }
+
+  // ============================================================
+  // 4. LOAD DASHBOARD DATA
+  // ============================================================
+
+  const data = await getDashboardData(
+    claims.sub,
+  );
+
+  // ============================================================
+  // 5. LOAD TOP 5 UNREAD NOTIFICATIONS
+  //
+  // These are displayed in the dashboard notification section.
+  // RLS ensures the logged-in student only receives their own
+  // notifications.
+  // ============================================================
+
+  const {
+    data: notificationRows,
+    error: notificationError,
+  } = await supabase
+    .from("notifications")
+    .select(
+      `
+        id,
+        title,
+        message,
+        type,
+        priority,
+        related_entity_type,
+        related_entity_id,
+        read_at,
+        created_at
+      `,
+    )
+    .is("read_at", null)
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(5);
+
+  if (notificationError) {
+    console.error(
+      "Failed to load dashboard notifications:",
+      notificationError,
+    );
+  }
+
+  // ============================================================
+  // 6. CONVERT DATABASE NOTIFICATIONS INTO DASHBOARD FORMAT
+  // ============================================================
+
+  const dashboardNotifications = (
+    notificationRows ?? []
+  ).map((notification) => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.message,
+    type: notification.type,
+    priority: notification.priority,
+    relatedEntityType:
+      notification.related_entity_type,
+    relatedEntityId:
+      notification.related_entity_id,
+    readAt: notification.read_at,
+    createdAt: notification.created_at,
+  }));
+
+  // ============================================================
+  // 7. RENDER DASHBOARD
+  // ============================================================
 
   return (
     <main className="space-y-6">
+      {/* ======================================================
+          Dashboard header
+      ====================================================== */}
+
       <DashboardHeader
-        fullName={data.profile.full_name ?? "Student"}
+        fullName={
+          data.profile.full_name ?? "Student"
+        }
       />
 
-      {/* CampusMate AI */}
+      {/* ======================================================
+          CampusMate AI
+      ====================================================== */}
+
       <section className="rounded-2xl border border-brand-200 bg-brand-50 p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -46,8 +154,9 @@ export default async function DashboardPage() {
             </h2>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Ask about your exams, assignments, attendance,
-              syllabus progress or what you should study next.
+              Ask about your exams, assignments,
+              attendance, syllabus progress or what
+              you should study next.
             </p>
           </div>
 
@@ -60,61 +169,73 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {/* ======================================================
+          Global Campus Search
+      ====================================================== */}
+
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <p className="text-sm font-semibold text-brand-600">
-        Campus Search
-      </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-brand-600">
+              Campus Search
+            </p>
 
-      <h2 className="mt-1 text-xl font-bold text-foreground">
-        Find anything across CampusMate.
-      </h2>
+            <h2 className="mt-1 text-xl font-bold text-foreground">
+              Find anything across CampusMate.
+            </h2>
 
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-        Search your subjects, assignments,
-        notices, timetable and study plans
-        from one place.
-      </p>
-    </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Search your subjects, assignments,
+              notices, timetable and study plans
+              from one place.
+            </p>
+          </div>
 
-    <a
-      href="/search"
-      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
-    >
-      Search Campus
-    </a>
-  </div>
-</section>
+          <a
+            href="/search"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+          >
+            Search Campus
+          </a>
+        </div>
+      </section>
+
+      {/* ======================================================
+          Academic Intelligence
+      ====================================================== */}
 
       <section className="rounded-2xl border border-border bg-card p-6">
-  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <p className="text-sm font-semibold text-brand-600">
-        Academic Intelligence
-      </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-brand-600">
+              Academic Intelligence
+            </p>
 
-      <h2 className="mt-1 text-xl font-bold">
-        Understand your academic health
-      </h2>
+            <h2 className="mt-1 text-xl font-bold">
+              Understand your academic health
+            </h2>
 
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-        CampusMate analyzes attendance, assignments,
-        syllabus progress, study consistency and exam
-        readiness to identify where you should focus next.
-      </p>
-    </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              CampusMate analyzes attendance,
+              assignments, syllabus progress, study
+              consistency and exam readiness to
+              identify where you should focus next.
+            </p>
+          </div>
 
-    <a
-      href="/academic-health"
-      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
-    >
-      View Academic Health
-    </a>
-  </div>
-</section>
+          <a
+            href="/academic-health"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+          >
+            View Academic Health
+          </a>
+        </div>
+      </section>
 
-      {/* Academic summary */}
+      {/* ======================================================
+          Academic summary
+      ====================================================== */}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardStatCard
           title="Current semester"
@@ -132,7 +253,9 @@ export default async function DashboardPage() {
 
         <DashboardStatCard
           title="Program"
-          value={data.program?.code ?? "—"}
+          value={
+            data.program?.code ?? "—"
+          }
           description={
             data.program?.name ??
             "Program information"
@@ -142,14 +265,18 @@ export default async function DashboardPage() {
 
         <DashboardStatCard
           title="Student number"
-          value={data.student.student_number}
+          value={
+            data.student.student_number
+          }
           description="Your academic identity"
           icon="🪪"
         />
 
         <DashboardStatCard
           title="Department"
-          value={data.department?.code ?? "—"}
+          value={
+            data.department?.code ?? "—"
+          }
           description={
             data.department?.name ??
             "Department information"
@@ -158,17 +285,28 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* Next class */}
+      {/* ======================================================
+          Next class
+      ====================================================== */}
+
       <NextClassCard />
 
-      {/* Today's schedule and assignments */}
+      {/* ======================================================
+          Today's schedule and assignments
+      ====================================================== */}
+
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <TodaySchedule items={[]} />
 
-        <UpcomingAssignments assignments={[]} />
+        <UpcomingAssignments
+          assignments={[]}
+        />
       </section>
 
-      {/* Attendance and academic health */}
+      {/* ======================================================
+          Attendance and academic health
+      ====================================================== */}
+
       <section className="grid gap-6 lg:grid-cols-2">
         <AttendanceOverview
           overallPercentage={null}
@@ -182,8 +320,15 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* Notifications */}
-      <DashboardNotifications notifications={[]} />
+      {/* ======================================================
+          Dashboard Notifications
+      ====================================================== */}
+
+      <DashboardNotifications
+        notifications={
+          dashboardNotifications
+        }
+      />
     </main>
   );
 }

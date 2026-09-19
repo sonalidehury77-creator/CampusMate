@@ -6,17 +6,42 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const notificationSettingsSchema = z.object({
+  // ============================================================
+  // NOTIFICATION CATEGORY SETTINGS
+  // ============================================================
+
   assignmentNotifications: z.boolean(),
+
   noticeNotifications: z.boolean(),
+
   attendanceNotifications: z.boolean(),
+
   timetableNotifications: z.boolean(),
+
   eventNotifications: z.boolean(),
+
   aiNotifications: z.boolean(),
 
+  // Phase 19
+  examNotifications: z.boolean(),
+
+  // Phase 19
+  studyTaskNotifications: z.boolean(),
+
+  // Phase 19
   reminderNotifications: z.boolean(),
 
+  // ============================================================
+  // DELIVERY SETTINGS
+  // ============================================================
+
   emailNotifications: z.boolean(),
+
   pushNotifications: z.boolean(),
+
+  // ============================================================
+  // SMART REMINDER SETTINGS
+  // ============================================================
 
   assignmentReminderDays: z
     .number()
@@ -42,6 +67,10 @@ const notificationSettingsSchema = z.object({
     .min(5)
     .max(60),
 
+  // ============================================================
+  // QUIET HOURS
+  // ============================================================
+
   quietHoursEnabled: z.boolean(),
 
   quietHoursStart: z
@@ -62,6 +91,10 @@ const notificationSettingsSchema = z.object({
 export async function updateAdvancedNotificationSettings(
   input: unknown,
 ) {
+  // ============================================================
+  // 1. VALIDATE INPUT
+  // ============================================================
+
   const parsed =
     notificationSettingsSchema.safeParse(
       input,
@@ -73,7 +106,15 @@ export async function updateAdvancedNotificationSettings(
     );
   }
 
+  // ============================================================
+  // 2. CREATE SUPABASE SERVER CLIENT
+  // ============================================================
+
   const supabase = await createClient();
+
+  // ============================================================
+  // 3. GET CURRENT AUTHENTICATED USER
+  // ============================================================
 
   const {
     data: { user },
@@ -85,6 +126,10 @@ export async function updateAdvancedNotificationSettings(
     );
   }
 
+  // ============================================================
+  // 4. EXTRACT VALIDATED SETTINGS
+  // ============================================================
+
   const {
     assignmentNotifications,
     noticeNotifications,
@@ -92,23 +137,38 @@ export async function updateAdvancedNotificationSettings(
     timetableNotifications,
     eventNotifications,
     aiNotifications,
+
+    // Phase 19
+    examNotifications,
+    studyTaskNotifications,
     reminderNotifications,
+
     emailNotifications,
     pushNotifications,
+
     assignmentReminderDays,
     noticeReminderDays,
     examReminderDays,
     timetableReminderMinutes,
+
     quietHoursEnabled,
     quietHoursStart,
     quietHoursEnd,
   } = parsed.data;
+
+  // ============================================================
+  // 5. SAVE SETTINGS
+  // ============================================================
 
   const { error } = await supabase
     .from("notification_preferences")
     .upsert(
       {
         profile_id: user.id,
+
+        // --------------------------------------------------------
+        // Notification categories
+        // --------------------------------------------------------
 
         assignment_notifications:
           assignmentNotifications,
@@ -128,14 +188,32 @@ export async function updateAdvancedNotificationSettings(
         ai_notifications:
           aiNotifications,
 
+        // --------------------------------------------------------
+        // Phase 19 notification categories
+        // --------------------------------------------------------
+
+        exam_notifications:
+          examNotifications,
+
+        study_task_notifications:
+          studyTaskNotifications,
+
         reminder_notifications:
           reminderNotifications,
+
+        // --------------------------------------------------------
+        // Delivery settings
+        // --------------------------------------------------------
 
         email_notifications:
           emailNotifications,
 
         push_notifications:
           pushNotifications,
+
+        // --------------------------------------------------------
+        // Smart reminder settings
+        // --------------------------------------------------------
 
         assignment_reminder_days:
           assignmentReminderDays,
@@ -148,6 +226,10 @@ export async function updateAdvancedNotificationSettings(
 
         timetable_reminder_minutes:
           timetableReminderMinutes,
+
+        // --------------------------------------------------------
+        // Quiet hours
+        // --------------------------------------------------------
 
         quiet_hours_enabled:
           quietHoursEnabled,
@@ -163,11 +245,19 @@ export async function updateAdvancedNotificationSettings(
       },
     );
 
+  // ============================================================
+  // 6. HANDLE DATABASE ERROR
+  // ============================================================
+
   if (error) {
     throw new Error(
       `Unable to save notification settings: ${error.message}`,
     );
   }
+
+  // ============================================================
+  // 7. REFRESH RELEVANT PAGES
+  // ============================================================
 
   revalidatePath(
     "/notification-settings",
@@ -182,9 +272,17 @@ export async function updateAdvancedNotificationSettings(
   );
 }
 
+// ================================================================
+// PHASE 19
+// MANUALLY REFRESH SMART REMINDERS
+// ================================================================
 
 export async function refreshSmartReminders() {
   const supabase = await createClient();
+
+  // --------------------------------------------------------------
+  // 1. Verify authenticated user
+  // --------------------------------------------------------------
 
   const {
     data: { user },
@@ -195,6 +293,10 @@ export async function refreshSmartReminders() {
       "You must be signed in.",
     );
   }
+
+  // --------------------------------------------------------------
+  // 2. Run authenticated reminder engine
+  // --------------------------------------------------------------
 
   const {
     error,
@@ -207,6 +309,10 @@ export async function refreshSmartReminders() {
       `Unable to refresh smart reminders: ${error.message}`,
     );
   }
+
+  // --------------------------------------------------------------
+  // 3. Refresh notification UI
+  // --------------------------------------------------------------
 
   revalidatePath(
     "/notifications",

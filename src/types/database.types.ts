@@ -764,6 +764,7 @@ export type Database = {
           attendance_notifications: boolean
           email_notifications: boolean
           event_notifications: boolean
+          exam_notifications: boolean
           exam_reminder_days: number
           id: string
           notice_notifications: boolean
@@ -774,6 +775,7 @@ export type Database = {
           quiet_hours_end: string
           quiet_hours_start: string
           reminder_notifications: boolean
+          study_task_notifications: boolean
           timetable_notifications: boolean
           timetable_reminder_minutes: number
           updated_at: string
@@ -785,6 +787,7 @@ export type Database = {
           attendance_notifications?: boolean
           email_notifications?: boolean
           event_notifications?: boolean
+          exam_notifications?: boolean
           exam_reminder_days?: number
           id?: string
           notice_notifications?: boolean
@@ -795,6 +798,7 @@ export type Database = {
           quiet_hours_end?: string
           quiet_hours_start?: string
           reminder_notifications?: boolean
+          study_task_notifications?: boolean
           timetable_notifications?: boolean
           timetable_reminder_minutes?: number
           updated_at?: string
@@ -806,6 +810,7 @@ export type Database = {
           attendance_notifications?: boolean
           email_notifications?: boolean
           event_notifications?: boolean
+          exam_notifications?: boolean
           exam_reminder_days?: number
           id?: string
           notice_notifications?: boolean
@@ -816,6 +821,7 @@ export type Database = {
           quiet_hours_end?: string
           quiet_hours_start?: string
           reminder_notifications?: boolean
+          study_task_notifications?: boolean
           timetable_notifications?: boolean
           timetable_reminder_minutes?: number
           updated_at?: string
@@ -833,6 +839,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          dedupe_key: string | null
           id: string
           message: string
           priority: string
@@ -845,6 +852,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           message: string
           priority?: string
@@ -857,6 +865,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           message?: string
           priority?: string
@@ -1619,6 +1628,19 @@ export type Database = {
           p_priority: string
           p_profile_id: string
           p_title: string
+        }
+        Returns: string
+      }
+      create_reminder_notification: {
+        Args: {
+          p_dedupe_key: string
+          p_entity_id: string
+          p_entity_type: string
+          p_message: string
+          p_priority: string
+          p_profile_id: string
+          p_title: string
+          p_type: string
         }
         Returns: string
       }

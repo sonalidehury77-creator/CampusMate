@@ -78,9 +78,7 @@ export function NotificationCenter({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">
-            {unreadCount} unread
-          </p>
+          <p className="text-sm text-muted-foreground">{unreadCount} unread</p>
         </div>
 
         {unreadCount > 0 && (
@@ -131,9 +129,7 @@ export function NotificationCenter({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold">
-                        {notification.title}
-                      </h2>
+                      <h2 className="font-semibold">{notification.title}</h2>
 
                       <span className="rounded-full bg-muted px-2 py-1 text-xs capitalize">
                         {notification.priority}

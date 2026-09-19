@@ -16,12 +16,28 @@ export type NotificationPriority =
 export type Notification = {
   id: string;
   recipientProfileId: string;
+
   title: string;
   message: string;
-  type: NotificationType;
-  priority: NotificationPriority;
+
+  type:
+    | "assignment"
+    | "notice"
+    | "timetable"
+    | "attendance"
+    | "reminder"
+    | "event"
+    | "system"
+    | "ai";
+
+  priority:
+    | "urgent"
+    | "important"
+    | "normal";
+
   relatedEntityType: string | null;
   relatedEntityId: string | null;
+
   readAt: string | null;
   createdAt: string;
 };
@@ -36,6 +52,10 @@ export type NotificationPreferences = {
   timetableNotifications: boolean;
   eventNotifications: boolean;
   aiNotifications: boolean;
+
+  examNotifications: boolean;
+  studyTaskNotifications: boolean;
+  reminderNotifications: boolean;
 
   emailNotifications: boolean;
   pushNotifications: boolean;
