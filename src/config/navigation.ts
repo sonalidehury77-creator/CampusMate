@@ -31,6 +31,11 @@ export const mainNavigation = [
     href: "/attendance",
   },
   {
+  section: "Academics",
+  label: "Exams",
+  href: "/exams",
+},
+  {
     section: "Academics",
     label: "Academic Health",
     href: "/academic-health",

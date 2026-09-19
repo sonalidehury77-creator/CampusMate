@@ -8,8 +8,10 @@ import { DashboardStatCard } from "@/components/dashboard/dashboard-stat-card";
 import { NextClassCard } from "@/components/dashboard/next-class-card";
 import { TodaySchedule } from "@/components/dashboard/today-schedule";
 import { UpcomingAssignments } from "@/components/dashboard/upcoming-assignments";
+import { NextExamCard } from "@/components/exams/next-exam-card";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/services/dashboard/dashboard-data";
+import { getExamsData } from "@/services/exams/exams-data";
 import { generateMySmartReminders } from "@/services/notifications/reminder-engine";
 
 export default async function DashboardPage() {
@@ -42,8 +44,11 @@ export default async function DashboardPage() {
   // This runs only for the authenticated student.
   //
   // The database function handles deduplication, so refreshing
-  // the dashboard does not continuously create duplicate
+  // the dashboard should not continuously create duplicate
   // notifications.
+  //
+  // If reminder generation fails, the dashboard continues
+  // loading normally.
   // ============================================================
 
   try {
@@ -64,11 +69,52 @@ export default async function DashboardPage() {
   );
 
   // ============================================================
-  // 5. LOAD TOP 5 UNREAD NOTIFICATIONS
+  // 5. LOAD EXAM DATA
   //
-  // These are displayed in the dashboard notification section.
-  // RLS ensures the logged-in student only receives their own
-  // notifications.
+  // This provides the next upcoming exam for the
+  // NextExamCard component.
+  // ============================================================
+
+  const examData = await getExamsData();
+
+  // ============================================================
+  // 6. CALCULATE DAYS REMAINING FOR NEXT EXAM
+  //
+  // CampusMate uses Asia/Kolkata as the application
+  // timezone for this calculation.
+  // ============================================================
+
+  const daysRemaining =
+    examData.nextExam
+      ? Math.max(
+          0,
+          Math.round(
+            (
+              new Date(
+                `${examData.nextExam.examDate}T00:00:00+05:30`,
+              ).getTime() -
+              new Date(
+                `${new Intl.DateTimeFormat(
+                  "en-CA",
+                  {
+                    timeZone:
+                      "Asia/Kolkata",
+                  },
+                ).format(
+                  new Date(),
+                )}T00:00:00+05:30`,
+              ).getTime()
+            ) /
+              (1000 * 60 * 60 * 24),
+          ),
+        )
+      : null;
+
+  // ============================================================
+  // 7. LOAD TOP 5 UNREAD NOTIFICATIONS
+  //
+  // RLS ensures that the authenticated student only
+  // receives notifications they are allowed to see.
   // ============================================================
 
   const {
@@ -103,7 +149,8 @@ export default async function DashboardPage() {
   }
 
   // ============================================================
-  // 6. CONVERT DATABASE NOTIFICATIONS INTO DASHBOARD FORMAT
+  // 8. CONVERT DATABASE NOTIFICATIONS INTO
+  //    DASHBOARD COMPONENT FORMAT
   // ============================================================
 
   const dashboardNotifications = (
@@ -123,7 +170,7 @@ export default async function DashboardPage() {
   }));
 
   // ============================================================
-  // 7. RENDER DASHBOARD
+  // 9. RENDER DASHBOARD
   // ============================================================
 
   return (
@@ -134,7 +181,8 @@ export default async function DashboardPage() {
 
       <DashboardHeader
         fullName={
-          data.profile.full_name ?? "Student"
+          data.profile.full_name ??
+          "Student"
         }
       />
 
@@ -292,11 +340,24 @@ export default async function DashboardPage() {
       <NextClassCard />
 
       {/* ======================================================
+          Next exam
+      ====================================================== */}
+
+      <NextExamCard
+        exam={examData.nextExam}
+        daysRemaining={
+          daysRemaining
+        }
+      />
+
+      {/* ======================================================
           Today's schedule and assignments
       ====================================================== */}
 
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <TodaySchedule items={[]} />
+        <TodaySchedule
+          items={[]}
+        />
 
         <UpcomingAssignments
           assignments={[]}
