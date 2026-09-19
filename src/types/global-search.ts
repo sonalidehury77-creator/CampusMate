@@ -7,11 +7,15 @@ export type SearchResultType =
   | "note"
   | "study_plan"
   | "study_task"
-  | "exam";
+  | "exam"
+  | "expense";
 
-export type GlobalSearchResultType = SearchResultType;
+export type GlobalSearchResultType =
+  SearchResultType;
 
-export type SearchFilter = "all" | SearchResultType;
+export type SearchFilter =
+  | "all"
+  | SearchResultType;
 
 export type SearchResult = {
   id: string;
@@ -23,9 +27,11 @@ export type SearchResult = {
   relevance: number;
 };
 
-export type GlobalSearchItem = SearchResult;
+export type GlobalSearchItem =
+  SearchResult;
 
-export type GlobalSearchResult = SearchResult;
+export type GlobalSearchResult =
+  SearchResult;
 
 export type GlobalSearchResponse = {
   results: SearchResult[];

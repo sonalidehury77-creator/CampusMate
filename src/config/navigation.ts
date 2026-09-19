@@ -63,6 +63,12 @@ export const mainNavigation = [
   },
 
   {
+  section: "Finance",
+  label: "Finance",
+  href: "/finance",
+},
+
+  {
     section: "Intelligence",
     label: "CampusMate AI",
     href: "/ai",

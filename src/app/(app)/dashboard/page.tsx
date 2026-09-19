@@ -12,6 +12,7 @@ import { NextExamCard } from "@/components/exams/next-exam-card";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/services/dashboard/dashboard-data";
 import { getExamsData } from "@/services/exams/exams-data";
+import { getFinanceData } from "@/services/finance/finance-data";
 import { generateMySmartReminders } from "@/services/notifications/reminder-engine";
 
 export default async function DashboardPage() {
@@ -78,7 +79,17 @@ export default async function DashboardPage() {
   const examData = await getExamsData();
 
   // ============================================================
-  // 6. CALCULATE DAYS REMAINING FOR NEXT EXAM
+  // 6. LOAD FINANCE DATA
+  //
+  // This provides the student's current month spending,
+  // daily average and remaining budget.
+  // ============================================================
+
+  const financeData =
+    await getFinanceData();
+
+  // ============================================================
+  // 7. CALCULATE DAYS REMAINING FOR NEXT EXAM
   //
   // CampusMate uses Asia/Kolkata as the application
   // timezone for this calculation.
@@ -111,7 +122,7 @@ export default async function DashboardPage() {
       : null;
 
   // ============================================================
-  // 7. LOAD TOP 5 UNREAD NOTIFICATIONS
+  // 8. LOAD TOP 5 UNREAD NOTIFICATIONS
   //
   // RLS ensures that the authenticated student only
   // receives notifications they are allowed to see.
@@ -149,7 +160,7 @@ export default async function DashboardPage() {
   }
 
   // ============================================================
-  // 8. CONVERT DATABASE NOTIFICATIONS INTO
+  // 9. CONVERT DATABASE NOTIFICATIONS INTO
   //    DASHBOARD COMPONENT FORMAT
   // ============================================================
 
@@ -170,7 +181,7 @@ export default async function DashboardPage() {
   }));
 
   // ============================================================
-  // 9. RENDER DASHBOARD
+  // 10. RENDER DASHBOARD
   // ============================================================
 
   return (
@@ -349,6 +360,47 @@ export default async function DashboardPage() {
           daysRemaining
         }
       />
+
+      {/* ======================================================
+          Finance Intelligence
+      ====================================================== */}
+
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-brand-600">
+              Finance Intelligence
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold">
+              ₹
+              {financeData.summary.totalSpent.toFixed(
+                0,
+              )}{" "}
+              spent this month
+            </h2>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Daily average: ₹
+              {financeData.summary.averageDailySpend.toFixed(
+                0,
+              )}
+              {" · "}
+              Budget remaining: ₹
+              {financeData.summary.remainingBudget.toFixed(
+                0,
+              )}
+            </p>
+          </div>
+
+          <a
+            href="/finance"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+          >
+            View Finance
+          </a>
+        </div>
+      </section>
 
       {/* ======================================================
           Today's schedule and assignments

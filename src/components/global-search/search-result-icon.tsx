@@ -4,7 +4,10 @@ type SearchResultIconProps = {
   type: SearchResultType;
 };
 
-const icons: Record<SearchResultType, string> = {
+const icons: Record<
+  SearchResultType,
+  string
+> = {
   subject: "📚",
   assignment: "📝",
   notice: "📢",
@@ -14,6 +17,7 @@ const icons: Record<SearchResultType, string> = {
   study_plan: "📅",
   study_task: "✅",
   exam: "🎓",
+  expense: "💰",
 };
 
 export function SearchResultIcon({
