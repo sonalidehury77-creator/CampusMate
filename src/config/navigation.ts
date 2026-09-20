@@ -73,6 +73,12 @@ export const mainNavigation = [
     label: "CampusMate AI",
     href: "/ai",
   },
+  
+  {
+  section: "Career",
+  label: "Career Center",
+  href: "/career",
+},
 
   {
     section: "Account",

@@ -414,6 +414,338 @@ export type Database = {
           },
         ]
       }
+      career_certifications: {
+        Row: {
+          created_at: string
+          credential_id: string | null
+          credential_url: string | null
+          does_not_expire: boolean
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_organization: string | null
+          name: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          does_not_expire?: boolean
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string | null
+          name: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          does_not_expire?: boolean
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string | null
+          name?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_certifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_goals: {
+        Row: {
+          created_at: string
+          description: string | null
+          goal_type: string
+          id: string
+          progress: number
+          status: string
+          student_id: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          goal_type: string
+          id?: string
+          progress?: number
+          status?: string
+          student_id: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          goal_type?: string
+          id?: string
+          progress?: number
+          status?: string
+          student_id?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_goals_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_learning_recommendations: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          priority: string
+          resource_url: string | null
+          skill_id: string | null
+          source: string
+          status: string
+          student_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: string
+          resource_url?: string | null
+          skill_id?: string | null
+          source?: string
+          status?: string
+          student_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: string
+          resource_url?: string | null
+          skill_id?: string | null
+          source?: string
+          status?: string
+          student_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_learning_recommendations_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "career_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_learning_recommendations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_profiles: {
+        Row: {
+          availability_status: string | null
+          career_summary: string | null
+          created_at: string
+          github_url: string | null
+          id: string
+          linkedin_url: string | null
+          portfolio_url: string | null
+          resume_url: string | null
+          student_id: string
+          target_company_type: string | null
+          target_industry: string | null
+          target_role: string | null
+          updated_at: string
+        }
+        Insert: {
+          availability_status?: string | null
+          career_summary?: string | null
+          created_at?: string
+          github_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          resume_url?: string | null
+          student_id: string
+          target_company_type?: string | null
+          target_industry?: string | null
+          target_role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          availability_status?: string | null
+          career_summary?: string | null
+          created_at?: string
+          github_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          resume_url?: string | null
+          student_id?: string
+          target_company_type?: string | null
+          target_industry?: string | null
+          target_role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_profiles_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_project_skills: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          skill_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          skill_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          skill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_project_skills_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "career_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_project_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "career_skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_projects: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          featured: boolean
+          github_url: string | null
+          id: string
+          live_url: string | null
+          project_type: string | null
+          started_at: string | null
+          status: string
+          student_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          github_url?: string | null
+          id?: string
+          live_url?: string | null
+          project_type?: string | null
+          started_at?: string | null
+          status?: string
+          student_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          github_url?: string | null
+          id?: string
+          live_url?: string | null
+          project_type?: string | null
+          started_at?: string | null
+          status?: string
+          student_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_projects_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_skills: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_technical: boolean
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_technical?: boolean
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_technical?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           code: string
@@ -1290,6 +1622,57 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_career_skills: {
+        Row: {
+          created_at: string
+          evidence: string | null
+          id: string
+          last_used_at: string | null
+          proficiency_level: number
+          skill_id: string
+          student_id: string
+          updated_at: string
+          years_experience: number | null
+        }
+        Insert: {
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          last_used_at?: string | null
+          proficiency_level?: number
+          skill_id: string
+          student_id: string
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Update: {
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          last_used_at?: string | null
+          proficiency_level?: number
+          skill_id?: string
+          student_id?: string
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_career_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "career_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_career_skills_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]

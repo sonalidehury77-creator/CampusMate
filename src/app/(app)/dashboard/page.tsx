@@ -403,6 +403,37 @@ export default async function DashboardPage() {
       </section>
 
       {/* ======================================================
+    Career Intelligence
+====================================================== */}
+
+<section className="rounded-2xl border border-border bg-card p-6">
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p className="text-sm font-semibold text-brand-600">
+        Career Intelligence
+      </p>
+
+      <h2 className="mt-1 text-xl font-bold">
+        Build your career before graduation.
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Track your skills, projects,
+        certifications and career goals,
+        and discover what you should improve next.
+      </p>
+    </div>
+
+    <a
+      href="/career"
+      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+    >
+      Open Career Center
+    </a>
+  </div>
+</section>
+
+      {/* ======================================================
           Today's schedule and assignments
       ====================================================== */}
 
