@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 
-import { calculateCareerReadiness } from "@/services/career/career-intelligence";
-
 import type {
   CareerCertification,
   CareerData,
@@ -9,24 +7,95 @@ import type {
   CareerProfile,
   CareerProject,
   CareerRecommendation,
+  CareerReadiness,
   StudentCareerSkill,
 } from "@/types/career";
 
-/* =========================================================
-   CAREER PROFILE NORMALIZERS
-   ========================================================= */
+type RawCareerProfile = {
+  id: string;
+  student_id: string;
+  target_role: string | null;
+  target_industry: string | null;
+  target_company_type: string | null;
+  career_summary: string | null;
+  github_url: string | null;
+  linkedin_url: string | null;
+  portfolio_url: string | null;
+  resume_url: string | null;
+  availability_status: string | null;
+};
+
+type RawCareerSkill = {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  is_technical: boolean | null;
+};
+
+type RawStudentCareerSkill = {
+  id: string;
+  skill_id: string;
+  proficiency_level: number | null;
+  years_experience: number | null;
+  evidence: string | null;
+};
+
+type RawCareerProject = {
+  id: string;
+  title: string;
+  description: string | null;
+  project_type: string | null;
+  status: string | null;
+  github_url: string | null;
+  live_url: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  featured: boolean | null;
+};
+
+type RawProjectSkill = {
+  project_id: string;
+  skill_id: string;
+};
+
+type RawCareerCertification = {
+  id: string;
+  name: string;
+  issuing_organization: string | null;
+  credential_id: string | null;
+  credential_url: string | null;
+  issue_date: string | null;
+  expiry_date: string | null;
+  does_not_expire: boolean | null;
+};
+
+type RawCareerGoal = {
+  id: string;
+  title: string;
+  description: string | null;
+  goal_type: string | null;
+  target_date: string | null;
+  status: string | null;
+  progress: number | null;
+};
+
+type RawCareerRecommendation = {
+  id: string;
+  skill_id: string | null;
+  title: string;
+  description: string | null;
+  resource_url: string | null;
+  priority: string | null;
+  estimated_hours: number | null;
+  status: string | null;
+  source: string | null;
+};
 
 function normalizeAvailabilityStatus(
   value: string | null,
-):
-  | "open_to_opportunities"
-  | "actively_looking"
-  | "not_looking"
-  | "open_to_internships" {
+): CareerProfile["availabilityStatus"] {
   switch (value) {
-    case "open_to_opportunities":
-      return "open_to_opportunities";
-
     case "actively_looking":
       return "actively_looking";
 
@@ -36,47 +105,31 @@ function normalizeAvailabilityStatus(
     case "open_to_internships":
       return "open_to_internships";
 
+    case "open_to_opportunities":
     default:
       return "open_to_opportunities";
   }
 }
 
-/* =========================================================
-   PROJECT STATUS NORMALIZER
-   ========================================================= */
-
 function normalizeProjectStatus(
   value: string | null,
-): "completed" | "in_progress" | "idea" {
+): CareerProject["status"] {
   switch (value) {
-    case "completed":
-      return "completed";
-
     case "in_progress":
       return "in_progress";
 
-    case "idea":
-      return "idea";
+    case "completed":
+      return "completed";
 
+    case "idea":
     default:
       return "idea";
   }
 }
 
-/* =========================================================
-   CAREER GOAL TYPE NORMALIZER
-   ========================================================= */
-
 function normalizeGoalType(
   value: string | null,
-):
-  | "job"
-  | "internship"
-  | "placement"
-  | "higher_studies"
-  | "freelancing"
-  | "entrepreneurship"
-  | "certification" {
+): CareerGoal["goalType"] {
   switch (value) {
     case "job":
       return "job";
@@ -104,19 +157,12 @@ function normalizeGoalType(
   }
 }
 
-/* =========================================================
-   CAREER GOAL STATUS NORMALIZER
-   ========================================================= */
-
 function normalizeGoalStatus(
   value: string | null,
-): "completed" | "active" | "paused" | "cancelled" {
+): CareerGoal["status"] {
   switch (value) {
     case "completed":
       return "completed";
-
-    case "active":
-      return "active";
 
     case "paused":
       return "paused";
@@ -124,18 +170,15 @@ function normalizeGoalStatus(
     case "cancelled":
       return "cancelled";
 
+    case "active":
     default:
       return "active";
   }
 }
 
-/* =========================================================
-   RECOMMENDATION PRIORITY NORMALIZER
-   ========================================================= */
-
 function normalizeRecommendationPriority(
   value: string | null,
-): "low" | "high" | "urgent" | "normal" {
+): CareerRecommendation["priority"] {
   switch (value) {
     case "low":
       return "low";
@@ -147,571 +190,833 @@ function normalizeRecommendationPriority(
       return "urgent";
 
     case "normal":
-      return "normal";
-
     default:
       return "normal";
   }
 }
 
-/* =========================================================
-   RECOMMENDATION STATUS NORMALIZER
-   ========================================================= */
-
 function normalizeRecommendationStatus(
   value: string | null,
-): "completed" | "in_progress" | "dismissed" | "recommended" {
+): CareerRecommendation["status"] {
   switch (value) {
-    case "completed":
-      return "completed";
-
     case "in_progress":
       return "in_progress";
+
+    case "completed":
+      return "completed";
 
     case "dismissed":
       return "dismissed";
 
     case "recommended":
-      return "recommended";
-
     default:
       return "recommended";
   }
 }
 
-/* =========================================================
-   RECOMMENDATION SOURCE NORMALIZER
-   ========================================================= */
-
 function normalizeRecommendationSource(
   value: string | null,
-): "system" | "ai" | "manual" {
+): CareerRecommendation["source"] {
   switch (value) {
-    case "system":
-      return "system";
-
     case "ai":
       return "ai";
 
     case "manual":
       return "manual";
 
+    case "system":
     default:
       return "system";
   }
 }
 
-/* =========================================================
-   MAIN CAREER DATA LOADER
-   ========================================================= */
+function clamp(
+  value: number,
+  minimum: number,
+  maximum: number,
+) {
+  return Math.min(
+    Math.max(value, minimum),
+    maximum,
+  );
+}
 
-export async function getCareerData(): Promise<CareerData> {
-  const supabase = await createClient();
+function calculateBasicReadiness(
+  profile: CareerProfile | null,
+  skills: StudentCareerSkill[],
+  projects: CareerProject[],
+  certifications: CareerCertification[],
+  goals: CareerGoal[],
+): CareerReadiness {
+  const profileFields = profile
+    ? [
+        profile.targetRole,
+        profile.targetIndustry,
+        profile.targetCompanyType,
+        profile.careerSummary,
+        profile.githubUrl,
+        profile.linkedinUrl,
+        profile.portfolioUrl,
+        profile.resumeUrl,
+      ]
+    : [];
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profileScore =
+    profileFields.length > 0
+      ? Math.round(
+          (profileFields.filter(
+            (value) =>
+              Boolean(value?.trim()),
+          ).length /
+            profileFields.length) *
+            100,
+        )
+      : 0;
 
-  if (!user) {
-    throw new Error("You must be signed in.");
+  const skillScore =
+    skills.length > 0
+      ? Math.round(
+          (skills.reduce(
+            (total, skill) =>
+              total +
+              skill.proficiencyLevel,
+            0,
+          ) /
+            (skills.length * 5)) *
+            100,
+        )
+      : 0;
+
+  const projectScore =
+    projects.length > 0
+      ? Math.round(
+          (projects.reduce(
+            (total, project) => {
+              let score = 0;
+
+              if (
+                project.status ===
+                "completed"
+              ) {
+                score += 50;
+              } else if (
+                project.status ===
+                "in_progress"
+              ) {
+                score += 30;
+              } else {
+                score += 10;
+              }
+
+              if (project.githubUrl) {
+                score += 15;
+              }
+
+              if (project.liveUrl) {
+                score += 15;
+              }
+
+              if (project.featured) {
+                score += 20;
+              }
+
+              return total + score;
+            },
+            0,
+          ) /
+            (projects.length * 100)) *
+            100,
+        )
+      : 0;
+
+  const certificationScore =
+    certifications.length > 0
+      ? Math.min(
+          certifications.length * 25,
+          100,
+        )
+      : 0;
+
+  const goalScore =
+    goals.length > 0
+      ? Math.round(
+          goals.reduce(
+            (total, goal) =>
+              total + goal.progress,
+            0,
+          ) / goals.length,
+        )
+      : 0;
+
+  const score = Math.round(
+    profileScore * 0.2 +
+      skillScore * 0.3 +
+      projectScore * 0.25 +
+      certificationScore * 0.1 +
+      goalScore * 0.15,
+  );
+
+  const strengths: string[] = [];
+
+  const strongSkills = skills
+    .filter(
+      (skill) =>
+        skill.proficiencyLevel >= 4,
+    )
+    .slice(0, 3);
+
+  for (const skill of strongSkills) {
+    strengths.push(
+      `${skill.name} is one of your stronger skills.`,
+    );
   }
 
-  /* =======================================================
-     LOAD STUDENT
-     ======================================================= */
+  if (
+    projects.some(
+      (project) =>
+        project.status === "completed",
+    )
+  ) {
+    strengths.push(
+      "You have completed practical project experience.",
+    );
+  }
 
-  const { data: student, error: studentError } = await supabase
-  .from("students")
-  .select("id, profile_id")
-  .eq("profile_id", user.id)
-  .maybeSingle();
+  if (certifications.length > 0) {
+    strengths.push(
+      "You have recorded professional learning achievements.",
+    );
+  }
 
-if (studentError) {
-  throw new Error(studentError.message);
+  if (
+    goals.some(
+      (goal) =>
+        goal.status === "active",
+    )
+  ) {
+    strengths.push(
+      "You have active career goals.",
+    );
+  }
+
+  const recommendations: string[] = [];
+
+  if (!profile) {
+    recommendations.push(
+      "Create your career profile.",
+    );
+  } else {
+    if (!profile.targetRole) {
+      recommendations.push(
+        "Set a target career role.",
+      );
+    }
+
+    if (!profile.githubUrl) {
+      recommendations.push(
+        "Add your GitHub profile.",
+      );
+    }
+
+    if (!profile.linkedinUrl) {
+      recommendations.push(
+        "Add your LinkedIn profile.",
+      );
+    }
+
+    if (!profile.resumeUrl) {
+      recommendations.push(
+        "Add your resume link.",
+      );
+    }
+  }
+
+  if (skills.length === 0) {
+    recommendations.push(
+      "Add your technical and professional skills.",
+    );
+  }
+
+  if (projects.length === 0) {
+    recommendations.push(
+      "Add at least one practical project.",
+    );
+  }
+
+  if (certifications.length === 0) {
+    recommendations.push(
+      "Add relevant certifications or learning achievements.",
+    );
+  }
+
+  if (goals.length === 0) {
+    recommendations.push(
+      "Create a measurable career goal.",
+    );
+  }
+
+  return {
+    score: clamp(
+      score,
+      0,
+      100,
+    ),
+    skillScore: clamp(
+      skillScore,
+      0,
+      100,
+    ),
+    projectScore: clamp(
+      projectScore,
+      0,
+      100,
+    ),
+    certificationScore: clamp(
+      certificationScore,
+      0,
+      100,
+    ),
+    goalScore: clamp(
+      goalScore,
+      0,
+      100,
+    ),
+    profileScore: clamp(
+      profileScore,
+      0,
+      100,
+    ),
+    strengths: strengths.slice(
+      0,
+      5,
+    ),
+    gaps: [],
+    recommendations:
+      recommendations.slice(
+        0,
+        8,
+      ),
+  };
 }
 
-if (!student) {
-  throw new Error("Student profile was not found.");
-}
+export async function getCareerData(): Promise<CareerData> {
+  const supabase =
+    await createClient();
 
-const studentId = student.id;
+  const {
+    data: {
+      user,
+    },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  /* =======================================================
-     LOAD ALL CAREER DATA
-     ======================================================= */
+  if (userError || !user) {
+    throw new Error(
+      "You must be signed in.",
+    );
+  }
+
+  const {
+    data: student,
+    error: studentError,
+  } = await supabase
+    .from("students")
+    .select("id")
+    .eq(
+      "profile_id",
+      user.id,
+    )
+    .maybeSingle();
+
+  if (studentError) {
+    throw new Error(
+      studentError.message,
+    );
+  }
+
+  if (!student) {
+    return {
+      profile: null,
+      skills: [],
+      projects: [],
+      certifications: [],
+      goals: [],
+      recommendations: [],
+      readiness: calculateBasicReadiness(
+        null,
+        [],
+        [],
+        [],
+        [],
+      ),
+    };
+  }
+
+  const studentId =
+    student.id;
 
   const [
     profileResult,
     skillsResult,
+    studentSkillsResult,
     projectsResult,
     certificationsResult,
     goalsResult,
     recommendationsResult,
   ] = await Promise.all([
-    /* -------------------------------------------------------
-       CAREER PROFILE
-       ------------------------------------------------------- */
-
     supabase
       .from("career_profiles")
       .select(
-        `
-        id,
-        student_id,
-        target_role,
-        target_industry,
-        target_company_type,
-        career_summary,
-        github_url,
-        linkedin_url,
-        portfolio_url,
-        resume_url,
-        availability_status
-      `,
+        "id, student_id, target_role, target_industry, target_company_type, career_summary, github_url, linkedin_url, portfolio_url, resume_url, availability_status",
       )
-      .eq("student_id", studentId)
+      .eq(
+        "student_id",
+        studentId,
+      )
       .maybeSingle(),
 
-    /* -------------------------------------------------------
-       STUDENT CAREER SKILLS
-       ------------------------------------------------------- */
+    supabase
+      .from("career_skills")
+      .select(
+        "id, name, category, description, is_technical",
+      )
+      .order(
+        "category",
+        {
+          ascending: true,
+        },
+      )
+      .order(
+        "name",
+        {
+          ascending: true,
+        },
+      ),
 
     supabase
       .from("student_career_skills")
       .select(
-        `
-        id,
-        skill_id,
-        proficiency_level,
-        years_experience,
-        evidence,
-        career_skills (
-          name,
-          category
-        )
-      `,
+        "id, skill_id, proficiency_level, years_experience, evidence",
       )
-      .eq("student_id", studentId),
-
-    /* -------------------------------------------------------
-       CAREER PROJECTS
-       ------------------------------------------------------- */
+      .eq(
+        "student_id",
+        studentId,
+      ),
 
     supabase
       .from("career_projects")
       .select(
-        `
-        id,
-        title,
-        description,
-        project_type,
-        status,
-        github_url,
-        live_url,
-        started_at,
-        completed_at,
-        featured,
-        career_project_skills (
-          career_skills (
-            name
-          )
-        )
-      `,
+        "id, title, description, project_type, status, github_url, live_url, started_at, completed_at, featured",
       )
-      .eq("student_id", studentId)
-      .order("featured", {
-        ascending: false,
-      })
-      .order("created_at", {
-        ascending: false,
-      }),
-
-    /* -------------------------------------------------------
-       CERTIFICATIONS
-       ------------------------------------------------------- */
+      .eq(
+        "student_id",
+        studentId,
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        },
+      ),
 
     supabase
       .from("career_certifications")
       .select(
-        `
-        id,
-        name,
-        issuing_organization,
-        credential_id,
-        credential_url,
-        issue_date,
-        expiry_date,
-        does_not_expire
-      `,
+        "id, name, issuing_organization, credential_id, credential_url, issue_date, expiry_date, does_not_expire",
       )
-      .eq("student_id", studentId)
-      .order("issue_date", {
-        ascending: false,
-      }),
-
-    /* -------------------------------------------------------
-       CAREER GOALS
-       ------------------------------------------------------- */
+      .eq(
+        "student_id",
+        studentId,
+      )
+      .order(
+        "issue_date",
+        {
+          ascending: false,
+        },
+      ),
 
     supabase
       .from("career_goals")
       .select(
-        `
-        id,
-        title,
-        description,
-        goal_type,
-        target_date,
-        status,
-        progress
-      `,
+        "id, title, description, goal_type, target_date, status, progress",
       )
-      .eq("student_id", studentId)
-      .order("created_at", {
-        ascending: false,
-      }),
-
-    /* -------------------------------------------------------
-       LEARNING RECOMMENDATIONS
-       ------------------------------------------------------- */
+      .eq(
+        "student_id",
+        studentId,
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        },
+      ),
 
     supabase
-      .from("career_learning_recommendations")
-      .select(
-        `
-        id,
-        skill_id,
-        title,
-        description,
-        resource_url,
-        priority,
-        estimated_hours,
-        status,
-        source,
-        career_skills (
-          name
-        )
-      `,
+      .from(
+        "career_learning_recommendations",
       )
-      .eq("student_id", studentId)
-      .neq("status", "dismissed")
-      .order("priority", {
-        ascending: true,
-      })
-      .limit(20),
+      .select(
+        "id, skill_id, title, description, resource_url, priority, estimated_hours, status, source",
+      )
+      .eq(
+        "student_id",
+        studentId,
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        },
+      ),
   ]);
-
-  /* =======================================================
-     ERROR HANDLING
-     ======================================================= */
 
   if (profileResult.error) {
     throw new Error(
-      `Failed to load career profile: ${profileResult.error.message}`,
+      profileResult.error.message,
     );
   }
 
   if (skillsResult.error) {
     throw new Error(
-      `Failed to load career skills: ${skillsResult.error.message}`,
+      skillsResult.error.message,
+    );
+  }
+
+  if (studentSkillsResult.error) {
+    throw new Error(
+      studentSkillsResult.error.message,
     );
   }
 
   if (projectsResult.error) {
     throw new Error(
-      `Failed to load career projects: ${projectsResult.error.message}`,
+      projectsResult.error.message,
     );
   }
 
   if (certificationsResult.error) {
     throw new Error(
-      `Failed to load certifications: ${certificationsResult.error.message}`,
+      certificationsResult.error.message,
     );
   }
 
   if (goalsResult.error) {
     throw new Error(
-      `Failed to load career goals: ${goalsResult.error.message}`,
+      goalsResult.error.message,
     );
   }
 
   if (recommendationsResult.error) {
     throw new Error(
-      `Failed to load recommendations: ${recommendationsResult.error.message}`,
+      recommendationsResult.error.message,
     );
   }
 
-  /* =======================================================
-     CAREER PROFILE
-     ======================================================= */
+  const rawProfile =
+    (profileResult.data ??
+      null) as RawCareerProfile | null;
 
-  const profileRow = profileResult.data;
+  const rawSkills =
+    (skillsResult.data ??
+      []) as RawCareerSkill[];
 
-  const profile: CareerProfile | null = profileRow
-    ? {
-        id: profileRow.id,
+  const rawStudentSkills =
+    (studentSkillsResult.data ??
+      []) as RawStudentCareerSkill[];
 
-        studentId:
-          profileRow.student_id,
+  const rawProjects =
+    (projectsResult.data ??
+      []) as RawCareerProject[];
 
-        targetRole:
-          profileRow.target_role,
+  const rawCertifications =
+    (certificationsResult.data ??
+      []) as RawCareerCertification[];
 
-        targetIndustry:
-          profileRow.target_industry,
+  const rawGoals =
+    (goalsResult.data ??
+      []) as RawCareerGoal[];
 
-        targetCompanyType:
-          profileRow.target_company_type,
+  const rawRecommendations =
+    (recommendationsResult.data ??
+      []) as RawCareerRecommendation[];
 
-        careerSummary:
-          profileRow.career_summary,
+  const skillMap =
+    new Map<string, RawCareerSkill>();
 
-        githubUrl:
-          profileRow.github_url,
+  for (const skill of rawSkills) {
+    skillMap.set(
+      skill.id,
+      skill,
+    );
+  }
 
-        linkedinUrl:
-          profileRow.linkedin_url,
+  const skills: StudentCareerSkill[] =
+    rawStudentSkills.map(
+      (studentSkill) => {
+        const catalogSkill =
+          skillMap.get(
+            studentSkill.skill_id,
+          );
 
-        portfolioUrl:
-          profileRow.portfolio_url,
+        return {
+          id: studentSkill.id,
+          skillId:
+            studentSkill.skill_id,
+          name:
+            catalogSkill?.name ??
+            "Unknown skill",
+          category:
+            catalogSkill?.category ??
+            "Other",
+          proficiencyLevel:
+            clamp(
+              Number(
+                studentSkill.proficiency_level ??
+                  1,
+              ),
+              1,
+              5,
+            ),
+          yearsExperience:
+            studentSkill.years_experience ??
+            null,
+          evidence:
+            studentSkill.evidence ??
+            null,
+        };
+      },
+    );
 
-        resumeUrl:
-          profileRow.resume_url,
+  const profile: CareerProfile | null =
+    rawProfile
+      ? {
+          id: rawProfile.id,
+          studentId:
+            rawProfile.student_id,
+          targetRole:
+            rawProfile.target_role,
+          targetIndustry:
+            rawProfile.target_industry,
+          targetCompanyType:
+            rawProfile.target_company_type,
+          careerSummary:
+            rawProfile.career_summary,
+          githubUrl:
+            rawProfile.github_url,
+          linkedinUrl:
+            rawProfile.linkedin_url,
+          portfolioUrl:
+            rawProfile.portfolio_url,
+          resumeUrl:
+            rawProfile.resume_url,
+          availabilityStatus:
+            normalizeAvailabilityStatus(
+              rawProfile.availability_status,
+            ),
+        }
+      : null;
 
-        availabilityStatus:
-          normalizeAvailabilityStatus(
-            profileRow.availability_status,
+  const projects: CareerProject[] =
+    rawProjects.map(
+      (project) => ({
+        id: project.id,
+        title: project.title,
+        description:
+          project.description,
+        projectType:
+          project.project_type,
+        status:
+          normalizeProjectStatus(
+            project.status,
           ),
+        githubUrl:
+          project.github_url,
+        liveUrl:
+          project.live_url,
+        startedAt:
+          project.started_at,
+        completedAt:
+          project.completed_at,
+        featured:
+          Boolean(project.featured),
+        skills: [],
+      }),
+    );
+
+  /*
+   * Project-skill relations are loaded separately.
+   * This avoids Supabase nested-relation TypeScript
+   * inference problems.
+   */
+  if (projects.length > 0) {
+    const projectIds =
+      projects.map(
+        (project) => project.id,
+      );
+
+    const {
+      data: projectSkillRows,
+      error:
+        projectSkillsError,
+    } = await supabase
+      .from(
+        "career_project_skills",
+      )
+      .select(
+        "project_id, skill_id",
+      )
+      .in(
+        "project_id",
+        projectIds,
+      );
+
+    if (projectSkillsError) {
+      throw new Error(
+        projectSkillsError.message,
+      );
+    }
+
+    const rawProjectSkills =
+      (projectSkillRows ??
+        []) as RawProjectSkill[];
+
+    const projectSkillsMap =
+      new Map<
+        string,
+        string[]
+      >();
+
+    for (const relation of rawProjectSkills) {
+      const skill =
+        skillMap.get(
+          relation.skill_id,
+        );
+
+      if (!skill) {
+        continue;
       }
-    : null;
 
-  /* =======================================================
-     STUDENT CAREER SKILLS
-     ======================================================= */
+      const existing =
+        projectSkillsMap.get(
+          relation.project_id,
+        ) ?? [];
 
-  const skills: StudentCareerSkill[] = (
-    skillsResult.data ?? []
-  ).map((row) => {
-    const skill = Array.isArray(
-      row.career_skills,
-    )
-      ? row.career_skills[0]
-      : row.career_skills;
+      existing.push(
+        skill.name,
+      );
 
-    return {
-      id: row.id,
+      projectSkillsMap.set(
+        relation.project_id,
+        existing,
+      );
+    }
 
-      skillId:
-        row.skill_id,
+    for (const project of projects) {
+      project.skills =
+        projectSkillsMap.get(
+          project.id,
+        ) ?? [];
+    }
+  }
 
-      name:
-        skill?.name ??
-        "Unknown skill",
+  const certifications: CareerCertification[] =
+    rawCertifications.map(
+      (certification) => ({
+        id: certification.id,
+        name: certification.name,
+        issuingOrganization:
+          certification.issuing_organization,
+        credentialId:
+          certification.credential_id,
+        credentialUrl:
+          certification.credential_url,
+        issueDate:
+          certification.issue_date,
+        expiryDate:
+          certification.expiry_date,
+        doesNotExpire:
+          Boolean(
+            certification.does_not_expire,
+          ),
+      }),
+    );
 
-      category:
-        skill?.category ??
-        "Other",
+  const goals: CareerGoal[] =
+    rawGoals.map(
+      (goal) => ({
+        id: goal.id,
+        title: goal.title,
+        description:
+          goal.description,
+        goalType:
+          normalizeGoalType(
+            goal.goal_type,
+          ),
+        targetDate:
+          goal.target_date,
+        status:
+          normalizeGoalStatus(
+            goal.status,
+          ),
+        progress: clamp(
+          Number(
+            goal.progress ?? 0,
+          ),
+          0,
+          100,
+        ),
+      }),
+    );
 
-      proficiencyLevel:
-        row.proficiency_level,
-
-      yearsExperience:
-        row.years_experience,
-
-      evidence:
-        row.evidence,
-    };
-  });
-
-  /* =======================================================
-     CAREER PROJECTS
-     ======================================================= */
-
-  const projects: CareerProject[] = (
-    projectsResult.data ?? []
-  ).map((row) => {
-    const projectSkills = (
-      row.career_project_skills ?? []
-    )
-      .map((item) => {
+  const recommendations: CareerRecommendation[] =
+    rawRecommendations.map(
+      (recommendation) => {
         const skill =
-          Array.isArray(
-            item.career_skills,
-          )
-            ? item.career_skills[0]
-            : item.career_skills;
+          recommendation.skill_id
+            ? skillMap.get(
+                recommendation.skill_id,
+              )
+            : undefined;
 
-        return skill?.name ?? "";
-      })
-      .filter(Boolean);
-
-    return {
-      id: row.id,
-
-      title:
-        row.title,
-
-      description:
-        row.description,
-
-      projectType:
-        row.project_type,
-
-      status:
-        normalizeProjectStatus(
-          row.status,
-        ),
-
-      githubUrl:
-        row.github_url,
-
-      liveUrl:
-        row.live_url,
-
-      startedAt:
-        row.started_at,
-
-      completedAt:
-        row.completed_at,
-
-      featured:
-        row.featured,
-
-      skills:
-        projectSkills,
-    };
-  });
-
-  /* =======================================================
-     CERTIFICATIONS
-     ======================================================= */
-
-  const certifications: CareerCertification[] = (
-    certificationsResult.data ?? []
-  ).map((row) => ({
-    id: row.id,
-
-    name:
-      row.name,
-
-    issuingOrganization:
-      row.issuing_organization,
-
-    credentialId:
-      row.credential_id,
-
-    credentialUrl:
-      row.credential_url,
-
-    issueDate:
-      row.issue_date,
-
-    expiryDate:
-      row.expiry_date,
-
-    doesNotExpire:
-      row.does_not_expire,
-  }));
-
-  /* =======================================================
-     CAREER GOALS
-     ======================================================= */
-
-  const goals: CareerGoal[] = (
-    goalsResult.data ?? []
-  ).map((row) => ({
-    id: row.id,
-
-    title:
-      row.title,
-
-    description:
-      row.description,
-
-    goalType:
-      normalizeGoalType(
-        row.goal_type,
-      ),
-
-    targetDate:
-      row.target_date,
-
-    status:
-      normalizeGoalStatus(
-        row.status,
-      ),
-
-    progress:
-      row.progress,
-  }));
-
-  /* =======================================================
-     CAREER RECOMMENDATIONS
-     ======================================================= */
-
-  const recommendations: CareerRecommendation[] = (
-    recommendationsResult.data ?? []
-  ).map((row) => {
-    const skill = Array.isArray(
-      row.career_skills,
-    )
-      ? row.career_skills[0]
-      : row.career_skills;
-
-    return {
-      id: row.id,
-
-      skillId:
-        row.skill_id,
-
-      skillName:
-        skill?.name ?? null,
-
-      title:
-        row.title,
-
-      description:
-        row.description,
-
-      resourceUrl:
-        row.resource_url,
-
-      priority:
-        normalizeRecommendationPriority(
-          row.priority,
-        ),
-
-      estimatedHours:
-        row.estimated_hours,
-
-      status:
-        normalizeRecommendationStatus(
-          row.status,
-        ),
-
-      source:
-        normalizeRecommendationSource(
-          row.source,
-        ),
-    };
-  });
-
-  /* =======================================================
-     CAREER READINESS
-     ======================================================= */
+        return {
+          id:
+            recommendation.id,
+          skillId:
+            recommendation.skill_id,
+          skillName:
+            skill?.name ?? null,
+          title:
+            recommendation.title,
+          description:
+            recommendation.description,
+          resourceUrl:
+            recommendation.resource_url,
+          priority:
+            normalizeRecommendationPriority(
+              recommendation.priority,
+            ),
+          estimatedHours:
+            recommendation.estimated_hours,
+          status:
+            normalizeRecommendationStatus(
+              recommendation.status,
+            ),
+          source:
+            normalizeRecommendationSource(
+              recommendation.source,
+            ),
+        };
+      },
+    );
 
   const readiness =
-    calculateCareerReadiness(
+    calculateBasicReadiness(
       profile,
       skills,
       projects,
       certifications,
       goals,
     );
-
-  /* =======================================================
-     FINAL CAREER DATA
-     ======================================================= */
 
   return {
     profile,

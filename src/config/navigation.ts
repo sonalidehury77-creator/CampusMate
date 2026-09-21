@@ -80,6 +80,12 @@ export const mainNavigation = [
   href: "/career",
 },
 
+{
+  section: "Career",
+  label: "Career Intelligence",
+  href: "/career/intelligence",
+},
+
   {
     section: "Account",
     label: "Profile",
