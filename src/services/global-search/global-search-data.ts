@@ -836,6 +836,48 @@ export async function searchCampus(
     }
   }
 
+  if (shouldSearch("opportunity")) {
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select(
+      "id, title, description, opportunity_type, provider_name, deadline",
+    )
+    .eq("status", "published")
+    .limit(20);
+
+  if (error) {
+    throw new Error(
+      `Unable to search opportunities: ${error.message}`,
+    );
+  }
+
+  for (const row of data ?? []) {
+    const relevance = calculateRelevance(
+      cleanQuery,
+      `${row.title} ${row.provider_name ?? ""} ${row.opportunity_type}`,
+      row.description ?? "",
+    );
+
+    if (relevance <= 0) {
+      continue;
+    }
+
+    results.push({
+      id: row.id,
+      type: "opportunity",
+      title: row.title,
+      description:
+        row.description ??
+        "Scholarship or career opportunity",
+      metadata:
+        row.provider_name ??
+        row.opportunity_type,
+      href: `/opportunities/${row.id}`,
+      relevance,
+    });
+  }
+}
+
     /*
    * EXAMS
    */

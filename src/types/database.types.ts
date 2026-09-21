@@ -1348,6 +1348,197 @@ export type Database = {
           },
         ]
       }
+      opportunities: {
+        Row: {
+          academic_year: string | null
+          amount: number | null
+          application_url: string | null
+          created_at: string
+          currency: string
+          deadline: string | null
+          description: string | null
+          eligibility: string | null
+          ends_at: string | null
+          id: string
+          industry: string | null
+          is_featured: boolean
+          is_verified: boolean
+          location: string | null
+          mode: string | null
+          opportunity_type: string
+          organization_type: string | null
+          provider_name: string | null
+          required_documents: Json
+          search_vector: unknown
+          source_name: string | null
+          source_url: string | null
+          starts_at: string | null
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year?: string | null
+          amount?: number | null
+          application_url?: string | null
+          created_at?: string
+          currency?: string
+          deadline?: string | null
+          description?: string | null
+          eligibility?: string | null
+          ends_at?: string | null
+          id?: string
+          industry?: string | null
+          is_featured?: boolean
+          is_verified?: boolean
+          location?: string | null
+          mode?: string | null
+          opportunity_type: string
+          organization_type?: string | null
+          provider_name?: string | null
+          required_documents?: Json
+          search_vector?: unknown
+          source_name?: string | null
+          source_url?: string | null
+          starts_at?: string | null
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string | null
+          amount?: number | null
+          application_url?: string | null
+          created_at?: string
+          currency?: string
+          deadline?: string | null
+          description?: string | null
+          eligibility?: string | null
+          ends_at?: string | null
+          id?: string
+          industry?: string | null
+          is_featured?: boolean
+          is_verified?: boolean
+          location?: string | null
+          mode?: string | null
+          opportunity_type?: string
+          organization_type?: string | null
+          provider_name?: string | null
+          required_documents?: Json
+          search_vector?: unknown
+          source_name?: string | null
+          source_url?: string | null
+          starts_at?: string | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      opportunity_applications: {
+        Row: {
+          applied_at: string | null
+          completed_documents: Json
+          created_at: string
+          id: string
+          notes: string | null
+          opportunity_id: string
+          reminder_at: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          completed_documents?: Json
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          reminder_at?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          completed_documents?: Json
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          reminder_at?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_applications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunity_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          minimum_amount: number | null
+          notifications_enabled: boolean
+          preferred_keywords: string[]
+          preferred_locations: string[]
+          preferred_modes: string[]
+          preferred_types: string[]
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          minimum_amount?: number | null
+          notifications_enabled?: boolean
+          preferred_keywords?: string[]
+          preferred_locations?: string[]
+          preferred_modes?: string[]
+          preferred_types?: string[]
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          minimum_amount?: number | null
+          notifications_enabled?: boolean
+          preferred_keywords?: string[]
+          preferred_locations?: string[]
+          preferred_modes?: string[]
+          preferred_types?: string[]
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_preferences_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2215,6 +2406,8 @@ export type Database = {
       get_my_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_faculty: { Args: never; Returns: boolean }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

@@ -8,7 +8,8 @@ export type SearchResultType =
   | "study_plan"
   | "study_task"
   | "exam"
-  | "expense";
+  | "expense"
+  | "opportunity";
 
 export type GlobalSearchResultType =
   SearchResultType;

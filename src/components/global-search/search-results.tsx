@@ -22,6 +22,7 @@ const labels: Record<
   study_task: "Study Task",
   exam: "Exam",
   expense: "Expense",
+  opportunity: "Opportunity",
 };
 
 export function SearchResults({
@@ -35,7 +36,8 @@ export function SearchResults({
         </p>
 
         <p className="mt-1 text-sm text-muted-foreground">
-          Try a different search term or select another category.
+          Try a different search term or select
+          another category.
         </p>
       </div>
     );
@@ -43,50 +45,48 @@ export function SearchResults({
 
   return (
     <div className="space-y-3">
-      {results.map(
-        (result) => (
-          <Link
-            key={`${result.type}-${result.id}`}
-            href={result.href}
-            className="flex items-start gap-4 rounded-2xl border border-border bg-background p-4 transition hover:border-brand-300 hover:bg-brand-50/40"
-          >
-            <SearchResultIcon
-              type={result.type}
-            />
+      {results.map((result) => (
+        <Link
+          key={`${result.type}-${result.id}`}
+          href={result.href}
+          className="flex items-start gap-4 rounded-2xl border border-border bg-background p-4 transition hover:border-brand-300 hover:bg-brand-50/40"
+        >
+          <SearchResultIcon
+            type={result.type}
+          />
 
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-medium text-foreground">
-                  {result.title}
-                </h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-medium text-foreground">
+                {result.title}
+              </h3>
 
-                <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {labels[result.type]}
-                </span>
-              </div>
-
-              {result.description && (
-                <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
-                  {result.description}
-                </p>
-              )}
-
-              {result.metadata && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {result.metadata}
-                </p>
-              )}
+              <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {labels[result.type]}
+              </span>
             </div>
 
-            <span
-              className="shrink-0 text-sm text-muted-foreground"
-              aria-hidden="true"
-            >
-              →
-            </span>
-          </Link>
-        ),
-      )}
+            {result.description && (
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                {result.description}
+              </p>
+            )}
+
+            {result.metadata && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {result.metadata}
+              </p>
+            )}
+          </div>
+
+          <span
+            className="shrink-0 text-sm text-muted-foreground"
+            aria-hidden="true"
+          >
+            →
+          </span>
+        </Link>
+      ))}
     </div>
   );
 }

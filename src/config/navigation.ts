@@ -86,11 +86,16 @@ export const mainNavigation = [
   href: "/career/intelligence",
 },
 
-  {
+{
+  label: "Opportunities",
+  href: "/opportunities",
+},
+
+{
     section: "Account",
     label: "Profile",
     href: "/profile",
-  },
+},
   {
     section: "Account",
     label: "Notification Settings",
