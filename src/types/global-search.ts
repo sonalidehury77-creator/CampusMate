@@ -9,7 +9,8 @@ export type SearchResultType =
   | "study_task"
   | "exam"
   | "expense"
-  | "opportunity";
+  | "opportunity"
+  |"academic_analytics";
 
 export type GlobalSearchResultType =
   SearchResultType;

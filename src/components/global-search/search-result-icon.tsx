@@ -19,6 +19,7 @@ const icons: Record<
   exam: "🎓",
   expense: "💰",
   opportunity: "🚀",
+  academic_analytics: "📊",
 };
 
 export function SearchResultIcon({

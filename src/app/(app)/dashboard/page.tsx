@@ -260,10 +260,10 @@ export default async function DashboardPage() {
           </div>
 
           <a
-            href="/academic-health"
+            href="/academic-analytics"
             className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
           >
-            View Academic Health
+            View Academic Analytics
           </a>
         </div>
       </section>

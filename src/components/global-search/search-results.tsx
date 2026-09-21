@@ -23,6 +23,7 @@ const labels: Record<
   exam: "Exam",
   expense: "Expense",
   opportunity: "Opportunity",
+  academic_analytics: "Academic Analytics",
 };
 
 export function SearchResults({

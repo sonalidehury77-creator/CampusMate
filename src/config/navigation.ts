@@ -4,37 +4,46 @@ export const mainNavigation = [
     label: "Dashboard",
     href: "/dashboard",
   },
+
   {
     section: "Overview",
     label: "Global Search",
     href: "/search",
   },
 
+  // =========================
+  // ACADEMICS
+  // =========================
   {
     section: "Academics",
     label: "Academics",
     href: "/academics",
   },
+
   {
     section: "Academics",
     label: "Timetable",
     href: "/timetable",
   },
+
   {
     section: "Academics",
     label: "Assignments",
     href: "/assignments",
   },
+
   {
     section: "Academics",
     label: "Attendance",
     href: "/attendance",
   },
+
   {
-  section: "Academics",
-  label: "Exams",
-  href: "/exams",
-},
+    section: "Academics",
+    label: "Exams",
+    href: "/exams",
+  },
+
   {
     section: "Academics",
     label: "Academic Health",
@@ -42,60 +51,86 @@ export const mainNavigation = [
   },
 
   {
+    section: "Academics",
+    label: "Academic Analytics",
+    href: "/academic-analytics",
+  },
+
+  // =========================
+  // RESOURCES
+  // =========================
+  {
     section: "Resources",
     label: "Resources",
     href: "/resources",
   },
+
   {
     section: "Resources",
     label: "Notices",
     href: "/notices",
   },
+
   {
     section: "Resources",
     label: "Notifications",
     href: "/notifications",
   },
+
   {
     section: "Resources",
     label: "Study Planner",
     href: "/study-planner",
   },
 
+  // =========================
+  // FINANCE
+  // =========================
   {
-  section: "Finance",
-  label: "Finance",
-  href: "/finance",
-},
+    section: "Finance",
+    label: "Finance",
+    href: "/finance",
+  },
 
+  // =========================
+  // INTELLIGENCE
+  // =========================
   {
     section: "Intelligence",
     label: "CampusMate AI",
     href: "/ai",
   },
-  
+
+  // =========================
+  // CAREER
+  // =========================
   {
-  section: "Career",
-  label: "Career Center",
-  href: "/career",
-},
+    section: "Career",
+    label: "Career Center",
+    href: "/career",
+  },
 
-{
-  section: "Career",
-  label: "Career Intelligence",
-  href: "/career/intelligence",
-},
+  {
+    section: "Career",
+    label: "Career Intelligence",
+    href: "/career/intelligence",
+  },
 
-{
-  label: "Opportunities",
-  href: "/opportunities",
-},
+  {
+    section: "Career",
+    label: "Opportunities",
+    href: "/opportunities",
+  },
 
-{
+  // =========================
+  // ACCOUNT
+  // =========================
+  {
     section: "Account",
     label: "Profile",
     href: "/profile",
-},
+  },
+
   {
     section: "Account",
     label: "Notification Settings",
