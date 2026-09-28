@@ -1,0 +1,40 @@
+import { redirect } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/server";
+
+export async function requireAdmin() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Failed to load admin profile: ${error.message}`,
+    );
+  }
+
+  if (!profile) {
+    redirect("/onboarding");
+  }
+
+  if (profile.role !== "admin") {
+    redirect("/dashboard");
+  }
+
+  return {
+    user,
+    profile,
+  };
+}
