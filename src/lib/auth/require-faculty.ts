@@ -1,15 +1,8 @@
-import type { ReactNode } from "react";
-
 import { redirect } from "next/navigation";
 
-import { AppShell } from "@/components/layout/app-shell";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function AppLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export async function requireFaculty() {
   const supabase = await createClient();
 
   const {
@@ -28,7 +21,7 @@ export default async function AppLayout({
 
   if (error) {
     throw new Error(
-      `Failed to load user profile: ${error.message}`,
+      `Failed to load faculty profile: ${error.message}`,
     );
   }
 
@@ -36,17 +29,12 @@ export default async function AppLayout({
     redirect("/onboarding");
   }
 
-  return (
-    <AppShell
-      role={
-        profile.role === "faculty"
-          ? "faculty"
-          : profile.role === "admin"
-            ? "admin"
-            : "student"
-      }
-    >
-      {children}
-    </AppShell>
-  );
+  if (profile.role !== "faculty") {
+    redirect("/dashboard");
+  }
+
+  return {
+    user,
+    profile,
+  };
 }

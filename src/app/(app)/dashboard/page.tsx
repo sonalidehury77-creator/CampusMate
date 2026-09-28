@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AcademicHealth } from "@/components/dashboard/academic-health";
@@ -164,19 +165,48 @@ export default async function DashboardPage() {
 
   return (
     <main className="space-y-6">
-      {/* ======================================================
-          Dashboard Header
-      ====================================================== */}
+     <DashboardHeader
+  fullName={
+    data.profile.full_name ?? "Student"
+  }
+/>
 
-      <DashboardHeader
-        fullName={
-          data.profile.full_name ?? "Student"
-        }
-      />
+{/* ======================================================
+    Faculty Workspace
+====================================================== */}
 
-      {/* ======================================================
-          CampusMate AI
-      ====================================================== */}
+{data.profile?.role === "faculty" ||
+data.profile?.role === "admin" ? (
+  <section className="rounded-2xl border border-indigo-100 bg-indigo-50 p-6 shadow-sm">
+    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p className="text-sm font-semibold text-indigo-700">
+          Faculty Workspace
+        </p>
+
+        <h2 className="mt-1 text-xl font-bold text-slate-950">
+          Manage your teaching activity
+        </h2>
+
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+          Assignments, attendance, timetable and
+          teaching intelligence are ready.
+        </p>
+      </div>
+
+      <Link
+        href="/faculty"
+        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+      >
+        Open Faculty Portal →
+      </Link>
+    </div>
+  </section>
+) : null}
+
+{/* ======================================================
+    CampusMate AI
+====================================================== */}
 
       <section className="rounded-2xl border border-brand-200 bg-brand-50 p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
