@@ -1539,8 +1539,53 @@ export type Database = {
           },
         ]
       }
+      profile_settings: {
+        Row: {
+          activity_alerts: boolean
+          allow_profile_search: boolean
+          login_alerts: boolean
+          profile_id: string
+          profile_visibility: string
+          security_alerts: boolean
+          show_email: boolean
+          show_phone: boolean
+          updated_at: string
+        }
+        Insert: {
+          activity_alerts?: boolean
+          allow_profile_search?: boolean
+          login_alerts?: boolean
+          profile_id: string
+          profile_visibility?: string
+          security_alerts?: boolean
+          show_email?: boolean
+          show_phone?: boolean
+          updated_at?: string
+        }
+        Update: {
+          activity_alerts?: boolean
+          allow_profile_search?: boolean
+          login_alerts?: boolean
+          profile_id?: string
+          profile_visibility?: string
+          security_alerts?: boolean
+          show_email?: boolean
+          show_phone?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          avatar_path: string | null
           avatar_url: string | null
           created_at: string
           email: string | null
@@ -1551,6 +1596,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_path?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
@@ -1561,6 +1607,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_path?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
