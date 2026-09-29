@@ -189,6 +189,79 @@ export type Database = {
           },
         ]
       }
+      assignment_submissions: {
+        Row: {
+          assignment_id: string
+          attachment_path: string | null
+          created_at: string
+          feedback: string | null
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          marks: number | null
+          max_marks: number | null
+          status: string
+          student_id: string
+          submission_text: string | null
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          attachment_path?: string | null
+          created_at?: string
+          feedback?: string | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          marks?: number | null
+          max_marks?: number | null
+          status?: string
+          student_id: string
+          submission_text?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          attachment_path?: string | null
+          created_at?: string
+          feedback?: string | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          marks?: number | null
+          max_marks?: number | null
+          status?: string
+          student_id?: string
+          submission_text?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submissions_graded_by_fkey"
+            columns: ["graded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           attachment_url: string | null
@@ -239,6 +312,51 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_corrections: {
+        Row: {
+          attendance_record_id: string
+          corrected_at: string
+          corrected_by: string
+          id: string
+          new_status: string
+          old_status: string
+          reason: string | null
+        }
+        Insert: {
+          attendance_record_id: string
+          corrected_at?: string
+          corrected_by: string
+          id?: string
+          new_status: string
+          old_status: string
+          reason?: string | null
+        }
+        Update: {
+          attendance_record_id?: string
+          corrected_at?: string
+          corrected_by?: string
+          id?: string
+          new_status?: string
+          old_status?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_corrections_attendance_record_id_fkey"
+            columns: ["attendance_record_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_corrections_corrected_by_fkey"
+            columns: ["corrected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2449,6 +2567,8 @@ export type Database = {
         }
         Returns: string
       }
+      current_faculty_id: { Args: never; Returns: string }
+      current_student_id: { Args: never; Returns: string }
       generate_my_smart_reminders: { Args: never; Returns: number }
       get_my_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }

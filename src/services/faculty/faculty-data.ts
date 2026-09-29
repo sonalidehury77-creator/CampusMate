@@ -1,882 +1,895 @@
-"use server";
-
 import { createClient } from "@/lib/supabase/server";
 
-import type {
-  FacultyAssignment,
-  FacultyAttendanceSession,
-  FacultyClass,
-  FacultyDashboardData,
-  FacultyIntelligence,
-  FacultySubject,
-} from "@/types/faculty";
 
-function clamp(value: number): number {
-  return Math.max(0, Math.min(100, value));
-}
+type FacultyContext = {
+  facultyId: string;
+  profileId: string;
+  name: string;
+  employeeNumber: string;
+  designation: string;
+  departmentId: string;
+};
 
-function getDayName(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-  });
-}
 
-function calculateIntelligence(
-  subjects: FacultySubject[],
-  assignments: FacultyAssignment[],
-  attendanceSessions: FacultyAttendanceSession[],
-  todayClasses: FacultyClass[],
-  upcomingClasses: FacultyClass[],
-): FacultyIntelligence {
-  const assignedSubjects = subjects.length;
-
-  const totalStudents = subjects.reduce(
-    (sum, subject) =>
-      sum + subject.studentCount,
-    0,
-  );
-
-  const totalAssignments =
-    assignments.length;
-
-  const now = new Date();
-
-  const upcomingAssignments =
-    assignments.filter((assignment) => {
-      if (!assignment.dueDate) {
-        return false;
-      }
-
-      const dueDate = new Date(
-        assignment.dueDate,
-      );
-
-      return dueDate.getTime() >= now.getTime();
-    }).length;
-
-  const attendanceActivityScore =
-    attendanceSessions.length === 0
-      ? 0
-      : clamp(
-          attendanceSessions.length * 10,
-        );
-
-  const assignmentActivityScore =
-    totalAssignments === 0
-      ? 0
-      : clamp(
-          totalAssignments * 10,
-        );
-
-  const workloadScore = clamp(
-    assignedSubjects * 20 +
-      todayClasses.length * 5 +
-      upcomingClasses.length * 2,
-  );
-
-  const engagementScore =
-    totalStudents === 0
-      ? 0
-      : clamp(
-          ((totalAssignments +
-            attendanceSessions.length) /
-            Math.max(totalStudents, 1)) *
-            100,
-        );
-
-  const overallScore = Number(
-    (
-      workloadScore * 0.25 +
-      engagementScore * 0.25 +
-      attendanceActivityScore * 0.25 +
-      assignmentActivityScore * 0.25
-    ).toFixed(1),
-  );
-
-  const risks: FacultyIntelligence["risks"] =
-    [];
-
-  if (
-    upcomingAssignments === 0 &&
-    assignedSubjects > 0
-  ) {
-    risks.push({
-      key: "assignment_activity",
-      level: "moderate",
-      title:
-        "No upcoming assignment deadlines",
-      description:
-        "Your currently tracked assignments do not have upcoming deadlines.",
-      recommendedAction:
-        "Review your subject plans and add assignments where appropriate.",
-    });
-  }
-
-  const subjectsWithoutAttendance =
-    subjects.filter(
-      (subject) =>
-        subject.attendanceSessionCount ===
-        0,
-    );
-
-  if (
-    subjectsWithoutAttendance.length > 0
-  ) {
-    risks.push({
-      key: "attendance_activity",
-      level: "high",
-      title:
-        "Attendance activity is missing",
-      description:
-        `${subjectsWithoutAttendance.length} assigned subject(s) have no attendance session recorded.`,
-      recommendedAction:
-        "Create attendance sessions after conducting classes.",
-    });
-  }
-
-  if (
-    todayClasses.length === 0 &&
-    assignedSubjects > 0
-  ) {
-    risks.push({
-      key: "today_schedule",
-      level: "low",
-      title: "No classes today",
-      description:
-        "There are no timetable classes assigned to you today.",
-      recommendedAction:
-        "Use the available time for grading, preparation or student support.",
-    });
-  }
-
-  const insights: FacultyIntelligence["insights"] =
-    [];
-
-  if (assignedSubjects > 0) {
-    insights.push({
-      type: "positive",
-      title: "Faculty profile is active",
-      description:
-        `You currently teach ${assignedSubjects} subject(s).`,
-      href: "/faculty/subjects",
-    });
-  }
-
-  if (todayClasses.length > 0) {
-    insights.push({
-      type: "action",
-      title: "Classes scheduled today",
-      description:
-        `${todayClasses.length} class(es) are scheduled today.`,
-      href: "/faculty/timetable",
-    });
-  }
-
-  if (assignments.length > 0) {
-    insights.push({
-      type: "positive",
-      title: "Assignment activity available",
-      description:
-        `${assignments.length} assignment(s) are currently linked to your faculty profile.`,
-      href: "/faculty/assignments",
-    });
-  }
-
-  if (attendanceSessions.length > 0) {
-    insights.push({
-      type: "positive",
-      title: "Attendance tracking active",
-      description:
-        `${attendanceSessions.length} attendance session(s) have been recorded.`,
-      href: "/faculty/attendance",
-    });
-  }
-
-  if (risks.length === 0) {
-    insights.push({
-      type: "info",
-      title: "No immediate faculty risks",
-      description:
-        "CampusMate currently has enough activity data to show a healthy teaching workflow.",
-    });
-  }
-
-  return {
-    workloadScore,
-    engagementScore,
-    attendanceActivityScore,
-    assignmentActivityScore,
-    overallScore,
-
-    metrics: {
-      assignedSubjects,
-      totalStudents,
-      totalAssignments,
-      upcomingAssignments,
-      attendanceSessions:
-        attendanceSessions.length,
-      classesThisWeek:
-        upcomingClasses.length,
-    },
-
-    risks,
-    insights,
-
-    generatedAt:
-      new Date().toISOString(),
-  };
-}
-
-export async function getFacultyDashboardData(): Promise<FacultyDashboardData> {
+async function getFacultyContext(): Promise<FacultyContext> {
   const supabase =
     await createClient();
+
 
   const {
     data: {
       user,
     },
-    error: userError,
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
-  if (userError) {
-    throw new Error(
-      `Unable to load authenticated user: ${userError.message}`,
-    );
-  }
 
   if (!user) {
     throw new Error(
-      "You must be signed in to access the faculty portal.",
+      "Authentication required.",
     );
   }
+
 
   const {
     data: faculty,
-    error: facultyError,
-  } = await supabase
-    .from("faculty")
-    .select(
-      `
+    error,
+  } =
+    await supabase
+      .from("faculty")
+      .select(`
         id,
+        profile_id,
         employee_number,
         designation,
-        profile_id
-      `,
-    )
-    .eq(
-      "profile_id",
-      user.id,
-    )
-    .maybeSingle();
+        department_id
+      `)
+      .eq(
+        "profile_id",
+        user.id,
+      )
+      .maybeSingle();
 
-  if (facultyError) {
+
+  if (error) {
     throw new Error(
-      `Unable to load faculty profile: ${facultyError.message}`,
+      `Failed to load faculty record: ${error.message}`,
     );
   }
+
 
   if (!faculty) {
     throw new Error(
-      "No faculty profile is linked to this account.",
+      "Faculty record not found.",
     );
   }
+
 
   const {
     data: profile,
     error: profileError,
-  } = await supabase
-    .from("profiles")
-    .select(
-      `
-        id,
-        full_name,
-        email,
-        role
-      `,
-    )
-    .eq(
-      "id",
-      user.id,
-    )
-    .maybeSingle();
+  } =
+    await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq(
+        "id",
+        user.id,
+      )
+      .maybeSingle();
+
 
   if (profileError) {
     throw new Error(
-      `Unable to load faculty profile information: ${profileError.message}`,
+      `Failed to load faculty profile: ${profileError.message}`,
     );
   }
+
+
+  return {
+    facultyId:
+      faculty.id,
+
+    profileId:
+      faculty.profile_id,
+
+    name:
+      profile?.full_name ??
+      "Faculty",
+
+    employeeNumber:
+      faculty.employee_number,
+
+    designation:
+      faculty.designation ??
+      "Faculty",
+
+    departmentId:
+      faculty.department_id,
+  };
+}
+
+
+/* ============================================================
+   FACULTY SUBJECTS
+   ============================================================ */
+
+export async function getFacultySubjects() {
+  const supabase =
+    await createClient();
+
+  const faculty =
+    await getFacultyContext();
+
+
+  const {
+    data: assignments,
+    error,
+  } =
+    await supabase
+      .from("faculty_subjects")
+      .select(`
+        id,
+        subject_id,
+        academic_year
+      `)
+      .eq(
+        "faculty_id",
+        faculty.facultyId,
+      );
+
+
+  if (error) {
+    throw new Error(
+      `Failed to load faculty subjects: ${error.message}`,
+    );
+  }
+
+
+  const subjectIds =
+    [
+      ...new Set(
+        (assignments ?? []).map(
+          (item) =>
+            item.subject_id,
+        ),
+      ),
+    ];
+
 
   if (
-    profile?.role !== "faculty" &&
-    profile?.role !== "admin"
+    subjectIds.length ===
+    0
   ) {
+    return [];
+  }
+
+
+  const {
+    data: subjects,
+    error: subjectError,
+  } =
+    await supabase
+      .from("subjects")
+      .select(`
+        id,
+        name,
+        code,
+        semester_id
+      `)
+      .in(
+        "id",
+        subjectIds,
+      );
+
+
+  if (subjectError) {
     throw new Error(
-      "This account does not have faculty access.",
+      `Failed to load subjects: ${subjectError.message}`,
     );
   }
 
-  const facultyId =
-    faculty.id;
 
-  const [
-    subjectResult,
-    timetableResult,
-    assignmentResult,
-    attendanceResult,
-  ] = await Promise.all([
-    supabase
+  return (
+    subjects ?? []
+  ).map(
+    (subject) => {
+
+      const assignment =
+        assignments?.find(
+          (item) =>
+            item.subject_id ===
+            subject.id,
+        );
+
+
+      return {
+        id:
+          subject.id,
+
+        name:
+          subject.name,
+
+        code:
+          subject.code,
+
+        semesterId:
+          subject.semester_id,
+
+        academicYear:
+          assignment?.academic_year ??
+          "—",
+      };
+    },
+  );
+}
+
+
+/* ============================================================
+   FACULTY STUDENTS
+   ============================================================ */
+
+export async function getFacultyStudents() {
+  const supabase =
+    await createClient();
+
+  const faculty =
+    await getFacultyContext();
+
+
+  const {
+    data: facultySubjects,
+    error: facultySubjectError,
+  } =
+    await supabase
       .from("faculty_subjects")
-      .select(
-        `
-          id,
-          subject_id,
-          academic_year,
-          subjects (
-            id,
-            code,
-            name
-          )
-        `,
-      )
+      .select("subject_id")
       .eq(
         "faculty_id",
-        facultyId,
-      ),
+        faculty.facultyId,
+      );
 
-    supabase
-      .from("timetable_entries")
-      .select(
-        `
-          id,
-          subject_id,
-          day_of_week,
-          start_time,
-          end_time,
-          room,
-          semester_id,
-          subjects (
-            id,
-            code,
-            name
+
+  if (facultySubjectError) {
+    throw new Error(
+      `Failed to load teaching subjects: ${facultySubjectError.message}`,
+    );
+  }
+
+
+  const subjectIds =
+    [
+      ...new Set(
+        (
+          facultySubjects ??
+          []
+        ).map(
+          (item) =>
+            item.subject_id,
+        ),
+      ),
+    ];
+
+
+  if (
+    subjectIds.length ===
+    0
+  ) {
+    return [];
+  }
+
+
+  const {
+    data: enrollments,
+    error: enrollmentError,
+  } =
+    await supabase
+      .from("student_subjects")
+      .select(`
+        student_id,
+        subject_id
+      `)
+      .in(
+        "subject_id",
+        subjectIds,
+      );
+
+
+  if (enrollmentError) {
+    throw new Error(
+      `Failed to load student enrollments: ${enrollmentError.message}`,
+    );
+  }
+
+
+  const studentIds =
+    [
+      ...new Set(
+        (
+          enrollments ??
+          []
+        ).map(
+          (item) =>
+            item.student_id,
+        ),
+      ),
+    ];
+
+
+  if (
+    studentIds.length ===
+    0
+  ) {
+    return [];
+  }
+
+
+  const {
+    data: students,
+    error: studentError,
+  } =
+    await supabase
+      .from("students")
+      .select(`
+        id,
+        profile_id,
+        student_number,
+        current_semester,
+        enrollment_year
+      `)
+      .in(
+        "id",
+        studentIds,
+      );
+
+
+  if (studentError) {
+    throw new Error(
+      `Failed to load students: ${studentError.message}`,
+    );
+  }
+
+
+  const profileIds =
+    [
+      ...new Set(
+        (
+          students ??
+          []
+        ).map(
+          (student) =>
+            student.profile_id,
+        ),
+      ),
+    ];
+
+
+  if (
+    profileIds.length ===
+    0
+  ) {
+    return [];
+  }
+
+
+  const {
+    data: profiles,
+    error: profileError,
+  } =
+    await supabase
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        email
+      `)
+      .in(
+        "id",
+        profileIds,
+      );
+
+
+  if (profileError) {
+    throw new Error(
+      `Failed to load student profiles: ${profileError.message}`,
+    );
+  }
+
+
+  const profileMap =
+    new Map(
+      (
+        profiles ??
+        []
+      ).map(
+        (profile) => [
+          profile.id,
+          profile,
+        ],
+      ),
+    );
+
+
+  return (
+    students ?? []
+  ).map(
+    (student) => {
+
+      const profile =
+        profileMap.get(
+          student.profile_id,
+        );
+
+
+      return {
+        id:
+          student.id,
+
+        profileId:
+          student.profile_id,
+
+        name:
+          profile?.full_name ??
+          "Student",
+
+        email:
+          profile?.email ??
+          "",
+
+        studentNumber:
+          student.student_number,
+
+        semester:
+          student.current_semester,
+
+        enrollmentYear:
+          student.enrollment_year,
+
+        subjects:
+          (
+            enrollments ??
+            []
           )
-        `,
-      )
-      .eq(
-        "faculty_id",
-        facultyId,
-      ),
+            .filter(
+              (item) =>
+                item.student_id ===
+                student.id,
+            )
+            .map(
+              (item) =>
+                item.subject_id,
+            ),
+      };
+    },
+  );
+}
 
-    supabase
+
+/* ============================================================
+   FACULTY ASSIGNMENTS
+   ============================================================ */
+
+export async function getFacultyAssignments() {
+  const supabase =
+    await createClient();
+
+  const faculty =
+    await getFacultyContext();
+
+
+  const {
+    data: assignments,
+    error,
+  } =
+    await supabase
       .from("assignments")
-      .select(
-        `
-          id,
-          title,
-          description,
-          due_date,
-          priority,
-          subject_id,
-          created_at,
-          subjects (
-            id,
-            code,
-            name
-          )
-        `,
-      )
+      .select(`
+        id,
+        subject_id,
+        title,
+        description,
+        due_date,
+        priority,
+        attachment_url,
+        created_at,
+        updated_at
+      `)
       .eq(
         "faculty_id",
-        facultyId,
+        faculty.facultyId,
       )
       .order(
         "due_date",
         {
-          ascending: true,
-          nullsFirst: false,
-        },
-      )
-      .limit(20),
+          ascending:
+            true,
 
-    supabase
-      .from("attendance_sessions")
-      .select(
-        `
-          id,
-          subject_id,
-          session_date,
-          subjects (
-            id,
-            code,
-            name
-          )
-        `,
-      )
-      .eq(
-        "faculty_id",
-        facultyId,
-      )
-      .order(
-        "session_date",
-        {
-          ascending: false,
-        },
-      )
-      .limit(30),
-  ]);
-
-  const firstError =
-    subjectResult.error ??
-    timetableResult.error ??
-    assignmentResult.error ??
-    attendanceResult.error;
-
-  if (firstError) {
-    throw new Error(
-      `Unable to load faculty dashboard: ${firstError.message}`,
-    );
-  }
-
-  const subjectRows =
-    subjectResult.data ?? [];
-
-  const timetableRows =
-    timetableResult.data ?? [];
-
-  const assignmentRows =
-    assignmentResult.data ?? [];
-
-  const attendanceRows =
-    attendanceResult.data ?? [];
-
-  const subjects: FacultySubject[] =
-    await Promise.all(
-      subjectRows.map(
-        async (row) => {
-          const subject = Array.isArray(
-            row.subjects,
-          )
-            ? row.subjects[0]
-            : row.subjects;
-
-          const studentResult =
-            await supabase
-              .from("student_subjects")
-              .select(
-                "student_id",
-                {
-                  count: "exact",
-                  head: true,
-                },
-              )
-              .eq(
-                "subject_id",
-                row.subject_id,
-              );
-
-          const assignmentResult =
-            await supabase
-              .from("assignments")
-              .select(
-                "id",
-                {
-                  count: "exact",
-                  head: true,
-                },
-              )
-              .eq(
-                "faculty_id",
-                facultyId,
-              )
-              .eq(
-                "subject_id",
-                row.subject_id,
-              );
-
-          const attendanceResult =
-            await supabase
-              .from(
-                "attendance_sessions",
-              )
-              .select(
-                "id",
-                {
-                  count: "exact",
-                  head: true,
-                },
-              )
-              .eq(
-                "faculty_id",
-                facultyId,
-              )
-              .eq(
-                "subject_id",
-                row.subject_id,
-              );
-
-          return {
-            id: String(row.id),
-
-            subjectId:
-              String(row.subject_id),
-
-            subjectCode:
-              String(
-                subject?.code ?? "",
-              ),
-
-            subjectName:
-              String(
-                subject?.name ??
-                  "Unknown subject",
-              ),
-
-            academicYear:
-              String(
-                row.academic_year,
-              ),
-
-            studentCount:
-              studentResult.count ?? 0,
-
-            assignmentCount:
-              assignmentResult.count ??
-              0,
-
-            attendanceSessionCount:
-              attendanceResult.count ??
-              0,
-          };
-        },
-      ),
-    );
-
-  const today =
-    getDayName(new Date());
-
-  const todayClasses: FacultyClass[] =
-    timetableRows
-      .filter(
-        (row) =>
-          String(
-            row.day_of_week,
-          ).toLowerCase() ===
-          today.toLowerCase(),
-      )
-      .map(
-        (row) => {
-          const subject =
-            Array.isArray(
-              row.subjects,
-            )
-              ? row.subjects[0]
-              : row.subjects;
-
-          return {
-            id: String(row.id),
-
-            subjectId:
-              String(row.subject_id),
-
-            subjectCode:
-              String(
-                subject?.code ?? "",
-              ),
-
-            subjectName:
-              String(
-                subject?.name ??
-                  "Unknown subject",
-              ),
-
-            dayOfWeek:
-              String(
-                row.day_of_week,
-              ),
-
-            startTime:
-              String(
-                row.start_time,
-              ),
-
-            endTime:
-              String(
-                row.end_time,
-              ),
-
-            room:
-              row.room === null
-                ? null
-                : String(row.room),
-
-            semesterId:
-              String(
-                row.semester_id,
-              ),
-          };
+          nullsFirst:
+            false,
         },
       );
 
-  const upcomingClasses: FacultyClass[] =
-    timetableRows.map(
-      (row) => {
-        const subject =
-          Array.isArray(
-            row.subjects,
-          )
-            ? row.subjects[0]
-            : row.subjects;
 
-        return {
-          id: String(row.id),
-
-          subjectId:
-            String(row.subject_id),
-
-          subjectCode:
-            String(
-              subject?.code ?? "",
-            ),
-
-          subjectName:
-            String(
-              subject?.name ??
-                "Unknown subject",
-            ),
-
-          dayOfWeek:
-            String(
-              row.day_of_week,
-            ),
-
-          startTime:
-            String(
-              row.start_time,
-            ),
-
-          endTime:
-            String(
-              row.end_time,
-            ),
-
-          room:
-            row.room === null
-              ? null
-              : String(row.room),
-
-          semesterId:
-            String(
-              row.semester_id,
-            ),
-        };
-      },
+  if (error) {
+    throw new Error(
+      `Failed to load assignments: ${error.message}`,
     );
+  }
 
-  const assignments: FacultyAssignment[] =
-    assignmentRows.map(
-      (row) => {
-        const subject =
-          Array.isArray(
-            row.subjects,
-          )
-            ? row.subjects[0]
-            : row.subjects;
 
-        return {
-          id: String(row.id),
+  const subjectIds =
+    [
+      ...new Set(
+        (
+          assignments ??
+          []
+        ).map(
+          (item) =>
+            item.subject_id,
+        ),
+      ),
+    ];
 
-          title:
-            String(row.title),
 
-          description:
-            row.description === null
-              ? null
-              : String(
-                  row.description,
-                ),
+  let subjects: {
+    id: string;
+    name: string;
+    code: string;
+  }[] = [];
 
-          dueDate:
-            row.due_date === null
-              ? null
-              : String(
-                  row.due_date,
-                ),
 
-          priority:
-            String(row.priority),
+  if (
+    subjectIds.length >
+    0
+  ) {
+    const {
+      data,
+      error: subjectError,
+    } =
+      await supabase
+        .from("subjects")
+        .select(
+          "id, name, code",
+        )
+        .in(
+          "id",
+          subjectIds,
+        );
 
-          subjectId:
-            String(row.subject_id),
 
-          subjectCode:
-            String(
-              subject?.code ?? "",
-            ),
+    if (subjectError) {
+      throw new Error(
+        `Failed to load assignment subjects: ${subjectError.message}`,
+      );
+    }
 
-          subjectName:
-            String(
-              subject?.name ??
-                "Unknown subject",
-            ),
 
-          createdAt:
-            String(
-              row.created_at,
-            ),
-        };
-      },
-    );
+    subjects =
+      data ?? [];
+  }
 
-  const attendanceSessions: FacultyAttendanceSession[] =
-    await Promise.all(
-      attendanceRows.map(
-        async (row) => {
-          const subject =
-            Array.isArray(
-              row.subjects,
-            )
-              ? row.subjects[0]
-              : row.subjects;
 
-          const {
-            data: records,
-            error,
-          } = await supabase
-            .from(
-              "attendance_records",
-            )
-            .select(
-              "student_id, status",
-            )
-            .eq(
-              "session_id",
-              row.id,
-            );
-
-          if (error) {
-            throw new Error(
-              `Unable to load attendance records: ${error.message}`,
-            );
-          }
-
-          const recordRows =
-            records ?? [];
-
-          const presentCount =
-            recordRows.filter(
-              (record) =>
-                record.status ===
-                  "present" ||
-                record.status ===
-                  "late",
-            ).length;
-
-          const absentCount =
-            recordRows.filter(
-              (record) =>
-                record.status ===
-                "absent",
-            ).length;
-
-          const total =
-            presentCount +
-            absentCount;
-
-          return {
-            id: String(row.id),
-
-            subjectId:
-              String(row.subject_id),
-
-            subjectCode:
-              String(
-                subject?.code ?? "",
-              ),
-
-            subjectName:
-              String(
-                subject?.name ??
-                  "Unknown subject",
-              ),
-
-            sessionDate:
-              String(
-                row.session_date,
-              ),
-
-            studentCount:
-              total,
-
-            presentCount,
-
-            absentCount,
-
-            attendancePercentage:
-              total > 0
-                ? Number(
-                    (
-                      (presentCount /
-                        total) *
-                      100
-                    ).toFixed(1),
-                  )
-                : 0,
-          };
-        },
+  const subjectMap =
+    new Map(
+      subjects.map(
+        (subject) => [
+          subject.id,
+          subject,
+        ],
       ),
     );
 
-  const intelligence =
-    calculateIntelligence(
-      subjects,
-      assignments,
-      attendanceSessions,
-      todayClasses,
-      upcomingClasses,
+
+  const assignmentIds =
+    (
+      assignments ??
+      []
+    ).map(
+      (item) =>
+        item.id,
     );
 
-  return {
-    faculty: {
-      id: facultyId,
 
-      employeeNumber:
-        String(
-          faculty.employee_number,
-        ),
+  let submissions: {
+    id: string;
+    assignment_id: string;
+    student_id: string;
+    status: string;
+    marks: number | null;
+    submitted_at: string | null;
+  }[] = [];
 
-      designation:
-        faculty.designation === null
-          ? null
-          : String(
-              faculty.designation,
-            ),
 
-      name:
-        String(
-          profile?.full_name ??
-            "Faculty",
-        ),
+  if (
+    assignmentIds.length >
+    0
+  ) {
+    const {
+      data,
+      error: submissionError,
+    } =
+      await supabase
+        .from(
+          "assignment_submissions",
+        )
+        .select(`
+          id,
+          assignment_id,
+          student_id,
+          status,
+          marks,
+          submitted_at
+        `)
+        .in(
+          "assignment_id",
+          assignmentIds,
+        );
 
-      email:
-        String(
-          profile?.email ??
-            user.email ??
-            "",
-        ),
+
+    if (submissionError) {
+      throw new Error(
+        `Failed to load submissions: ${submissionError.message}`,
+      );
+    }
+
+
+    submissions =
+      data ?? [];
+  }
+
+
+  return (
+    assignments ??
+    []
+  ).map(
+    (assignment) => {
+
+      const subject =
+        subjectMap.get(
+          assignment.subject_id,
+        );
+
+
+      const assignmentSubmissions =
+        submissions.filter(
+          (submission) =>
+            submission.assignment_id ===
+            assignment.id,
+        );
+
+
+      return {
+        ...assignment,
+
+        subjectName:
+          subject?.name ??
+          "Unknown subject",
+
+        subjectCode:
+          subject?.code ??
+          "",
+
+        submissionCount:
+          assignmentSubmissions.length,
+
+        gradedCount:
+          assignmentSubmissions.filter(
+            (item) =>
+              item.status ===
+              "graded",
+          ).length,
+
+        pendingCount:
+          assignmentSubmissions.filter(
+            (item) =>
+              item.status !==
+              "graded",
+          ).length,
+      };
     },
+  );
+}
 
+
+/* ============================================================
+   FACULTY TIMETABLE
+   ============================================================ */
+
+export async function getFacultyTimetable() {
+  const supabase =
+    await createClient();
+
+  const faculty =
+    await getFacultyContext();
+
+
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from("timetable_entries")
+      .select(`
+        id,
+        subject_id,
+        semester_id,
+        day_of_week,
+        start_time,
+        end_time,
+        room,
+        schedule_type
+      `)
+      .eq(
+        "faculty_id",
+        faculty.facultyId,
+      )
+      .order(
+        "day_of_week",
+      )
+      .order(
+        "start_time",
+      );
+
+
+  if (error) {
+    throw new Error(
+      `Failed to load timetable: ${error.message}`,
+    );
+  }
+
+
+  const subjectIds =
+    [
+      ...new Set(
+        (
+          data ??
+          []
+        ).map(
+          (item) =>
+            item.subject_id,
+        ),
+      ),
+    ];
+
+
+  let subjects: {
+    id: string;
+    name: string;
+    code: string;
+  }[] = [];
+
+
+  if (
+    subjectIds.length >
+    0
+  ) {
+    const {
+      data: subjectData,
+      error: subjectError,
+    } =
+      await supabase
+        .from("subjects")
+        .select(
+          "id, name, code",
+        )
+        .in(
+          "id",
+          subjectIds,
+        );
+
+
+    if (subjectError) {
+      throw new Error(
+        `Failed to load timetable subjects: ${subjectError.message}`,
+      );
+    }
+
+
+    subjects =
+      subjectData ??
+      [];
+  }
+
+
+  const subjectMap =
+    new Map(
+      subjects.map(
+        (subject) => [
+          subject.id,
+          subject,
+        ],
+      ),
+    );
+
+
+  return (
+    data ?? []
+  ).map(
+    (entry) => {
+
+      const subject =
+        subjectMap.get(
+          entry.subject_id,
+        );
+
+
+      return {
+        ...entry,
+
+        subjectName:
+          subject?.name ??
+          "Unknown",
+
+        subjectCode:
+          subject?.code ??
+          "",
+      };
+    },
+  );
+}
+
+
+/* ============================================================
+   FACULTY DASHBOARD
+   ============================================================ */
+
+export async function getFacultyDashboardData() {
+  const [
+    subjects,
+    students,
+    assignments,
+    timetable,
+  ] =
+    await Promise.all([
+      getFacultySubjects(),
+
+      getFacultyStudents(),
+
+      getFacultyAssignments(),
+
+      getFacultyTimetable(),
+    ]);
+
+
+  const today =
+    new Date();
+
+
+  const dayOfWeek =
+    today.getDay();
+
+
+  const todayClasses =
+    timetable.filter(
+      (entry) =>
+        entry.day_of_week ===
+        dayOfWeek,
+    );
+
+
+  const pendingSubmissions =
+    assignments.reduce(
+      (
+        total,
+        assignment,
+      ) =>
+        total +
+        assignment.pendingCount,
+      0,
+    );
+
+
+  return {
     subjects,
 
-    todayClasses,
-
-    upcomingClasses,
+    students,
 
     assignments,
 
-    attendanceSessions,
+    timetable,
 
-    intelligence,
+    todayClasses,
 
-    generatedAt:
-      new Date().toISOString(),
+    pendingSubmissions,
   };
 }

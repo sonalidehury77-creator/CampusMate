@@ -165,6 +165,12 @@ export const facultyNavigation: NavigationItem[] = [
 
   {
     section: "Teaching",
+    label: "Students",
+    href: "/faculty/students",
+  },
+
+  {
+    section: "Teaching",
     label: "Assignments",
     href: "/faculty/assignments",
   },
@@ -185,6 +191,12 @@ export const facultyNavigation: NavigationItem[] = [
     section: "Intelligence",
     label: "Faculty Intelligence",
     href: "/faculty/intelligence",
+  },
+
+  {
+    section: "Analytics",
+    label: "Teaching Analytics",
+    href: "/faculty/analytics",
   },
 
   {

@@ -1,196 +1,204 @@
 import Link from "next/link";
-import { requireFaculty } from "@/lib/auth/require-faculty";
-import {
-  getFacultyDashboardData,
-} from "@/services/faculty/faculty-data";
-function formatDate(
-  value: string | null,
-) {
-  if (!value) {
-    return "No deadline";
-  }
 
-  return new Intl.DateTimeFormat(
-    "en-IN",
-    {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    },
-  ).format(new Date(value));
-}
+import { Card } from "@/components/ui/card";
+
+import {
+  getFacultyAssignments,
+  getFacultySubjects,
+} from "@/services/faculty/faculty-data";
+
+import {
+  createFacultyAssignment,
+} from "@/services/faculty/faculty-actions";
 
 export default async function FacultyAssignmentsPage() {
-  await requireFaculty();
-
-    const data =
-    await getFacultyDashboardData();
+  const [
+    assignments,
+    subjects,
+  ] = await Promise.all([
+    getFacultyAssignments(),
+    getFacultySubjects(),
+  ]);
 
   return (
-    <main className="space-y-8">
-      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm font-medium text-indigo-600">
-            Faculty Portal
-          </p>
+    <div className="space-y-8">
+      <div>
+        <p className="text-sm font-semibold text-brand-600">
+          Teaching
+        </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">
-            Assignment Management
-          </h1>
+        <h1 className="mt-2 text-3xl font-bold">
+          Assignments
+        </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
-            Create and manage assignments for your subjects.
-          </p>
-        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Create assignments, monitor submissions and review student work.
+        </p>
+      </div>
 
-        <Link
-          href="/faculty/assignments/new"
-          className="inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+      {/* Create */}
+
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold">
+          Create Assignment
+        </h2>
+
+        <form
+          action={
+            createFacultyAssignment
+          }
+          className="mt-5 grid gap-4 md:grid-cols-2"
         >
-          + Create Assignment
-        </Link>
-      </section>
+          <select
+            name="subject_id"
+            required
+            className="rounded-xl border bg-background px-4 py-3 text-sm"
+          >
+            <option value="">
+              Select subject
+            </option>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">
-            Total
-          </p>
+            {subjects.map(
+              (subject) => (
+                <option
+                  key={subject.id}
+                  value={subject.id}
+                >
+                  {subject.code} —{" "}
+                  {subject.name}
+                </option>
+              ),
+            )}
+          </select>
 
-          <p className="mt-2 text-3xl font-bold text-slate-950">
-            {
-              data.assignments
-                .length
-            }
-          </p>
-        </div>
+          <input
+            name="title"
+            required
+            placeholder="Assignment title"
+            className="rounded-xl border bg-background px-4 py-3 text-sm"
+          />
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">
-            With Deadline
-          </p>
+          <input
+            name="due_date"
+            type="datetime-local"
+            className="rounded-xl border bg-background px-4 py-3 text-sm"
+          />
 
-          <p className="mt-2 text-3xl font-bold text-slate-950">
-            {
-              data.assignments.filter(
-                (item) =>
-                  item.dueDate !==
-                  null,
-              ).length
-            }
-          </p>
-        </div>
+          <select
+            name="priority"
+            defaultValue="normal"
+            className="rounded-xl border bg-background px-4 py-3 text-sm"
+          >
+            <option value="low">
+              Low priority
+            </option>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">
-            High Priority
-          </p>
+            <option value="normal">
+              Normal priority
+            </option>
 
-          <p className="mt-2 text-3xl font-bold text-amber-600">
-            {
-              data.assignments.filter(
-                (item) =>
-                  item.priority ===
-                    "high" ||
-                  item.priority ===
-                    "urgent",
-              ).length
-            }
-          </p>
-        </div>
+            <option value="high">
+              High priority
+            </option>
+          </select>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">
-            Subjects
-          </p>
+          <textarea
+            name="description"
+            placeholder="Assignment instructions..."
+            className="min-h-28 rounded-xl border bg-background px-4 py-3 text-sm md:col-span-2"
+          />
 
-          <p className="mt-2 text-3xl font-bold text-slate-950">
-            {
-              data.subjects
-                .length
-            }
-          </p>
-        </div>
-      </section>
+          <button
+            type="submit"
+            className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 md:w-fit"
+          >
+            Create Assignment
+          </button>
+        </form>
+      </Card>
 
-      <section className="space-y-4">
-        {data.assignments.map(
+      {/* Existing assignments */}
+
+      <div className="space-y-4">
+        {assignments.map(
           (assignment) => (
-            <article
+            <Card
               key={assignment.id}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              className="p-6"
             >
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex flex-col justify-between gap-5 md:flex-row">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">
-                    {
-                      assignment.subjectCode
-                    }
+                  <p className="text-xs font-medium uppercase tracking-wide text-brand-600">
+                    {assignment.subjectCode}
                   </p>
 
-                  <h2 className="mt-1 text-xl font-bold text-slate-950">
-                    {
-                      assignment.title
-                    }
+                  <h2 className="mt-1 text-lg font-semibold">
+                    {assignment.title}
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    {
-                      assignment.subjectName
-                    }
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {assignment.description ??
+                      "No description provided."}
                   </p>
                 </div>
 
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {
-                    assignment.priority
+                <div className="flex gap-2">
+                  <Link
+                    href={`/faculty/assignments/${assignment.id}`}
+                    className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-muted"
+                  >
+                    Manage
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 border-t pt-5 sm:grid-cols-3">
+                <Stat
+                  label="Submissions"
+                  value={
+                    assignment.submissionCount
                   }
-                </span>
-              </div>
+                />
 
-              {assignment.description && (
-                <p className="mt-5 text-sm leading-6 text-slate-600">
-                  {
-                    assignment.description
+                <Stat
+                  label="Graded"
+                  value={
+                    assignment.gradedCount
                   }
-                </p>
-              )}
+                />
 
-              <div className="mt-5 flex flex-wrap gap-4 text-sm text-slate-500">
-                <span>
-                  Due:{" "}
-                  {formatDate(
-                    assignment.dueDate,
-                  )}
-                </span>
-
-                <span>
-                  Created:{" "}
-                  {formatDate(
-                    assignment.createdAt,
-                  )}
-                </span>
+                <Stat
+                  label="Pending"
+                  value={
+                    assignment.pendingCount
+                  }
+                />
               </div>
-
-              <div className="mt-5 flex gap-2">
-                <Link
-                  href={`/faculty/assignments/${assignment.id}`}
-                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-                >
-                  Manage
-                </Link>
-              </div>
-            </article>
+            </Card>
           ),
         )}
+      </div>
+    </div>
+  );
+}
 
-        {data.assignments.length ===
-          0 && (
-          <div className="rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500">
-            No assignments have been created yet.
-          </div>
-        )}
-      </section>
-    </main>
+
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">
+        {label}
+      </p>
+
+      <p className="mt-1 text-lg font-bold">
+        {value}
+      </p>
+    </div>
   );
 }
