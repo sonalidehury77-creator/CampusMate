@@ -18,7 +18,6 @@ import {
   correctAttendance,
 } from "@/services/faculty/faculty-actions";
 
-
 export default async function FacultyAttendancePage() {
   const {
     profile,
@@ -30,8 +29,15 @@ export default async function FacultyAttendancePage() {
   const subjects =
     await getFacultySubjects();
 
+  /*
+   * ----------------------------------------------------------
+   * GET FACULTY RECORD
+   * ----------------------------------------------------------
+   */
+
   const {
     data: faculty,
+    error: facultyError,
   } = await supabase
     .from("faculty")
     .select("id")
@@ -41,18 +47,29 @@ export default async function FacultyAttendancePage() {
     )
     .maybeSingle();
 
+  if (facultyError) {
+    throw new Error(
+      `Failed to load faculty: ${facultyError.message}`,
+    );
+  }
+
   if (!faculty) {
     throw new Error(
       "Faculty record not found.",
     );
   }
 
+  /*
+   * ----------------------------------------------------------
+   * LOAD ATTENDANCE SESSIONS
+   * ----------------------------------------------------------
+   */
+
   const {
     data: sessions,
+    error: sessionError,
   } = await supabase
-    .from(
-      "attendance_sessions",
-    )
+    .from("attendance_sessions")
     .select(`
       id,
       subject_id,
@@ -70,6 +87,18 @@ export default async function FacultyAttendancePage() {
     )
     .limit(20);
 
+  if (sessionError) {
+    throw new Error(
+      `Failed to load attendance sessions: ${sessionError.message}`,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * LOAD ATTENDANCE RECORDS
+   * ----------------------------------------------------------
+   */
+
   const sessionIds =
     (sessions ?? []).map(
       (session) =>
@@ -78,12 +107,11 @@ export default async function FacultyAttendancePage() {
 
   const {
     data: records,
+    error: recordError,
   } =
     sessionIds.length > 0
       ? await supabase
-          .from(
-            "attendance_records",
-          )
+          .from("attendance_records")
           .select(`
             id,
             session_id,
@@ -97,7 +125,20 @@ export default async function FacultyAttendancePage() {
           )
       : {
           data: [],
+          error: null,
         };
+
+  if (recordError) {
+    throw new Error(
+      `Failed to load attendance records: ${recordError.message}`,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * LOAD STUDENTS
+   * ----------------------------------------------------------
+   */
 
   const studentIds = [
     ...new Set(
@@ -110,6 +151,7 @@ export default async function FacultyAttendancePage() {
 
   const {
     data: students,
+    error: studentError,
   } =
     studentIds.length > 0
       ? await supabase
@@ -125,7 +167,20 @@ export default async function FacultyAttendancePage() {
           )
       : {
           data: [],
+          error: null,
         };
+
+  if (studentError) {
+    throw new Error(
+      `Failed to load students: ${studentError.message}`,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * LOAD STUDENT PROFILES
+   * ----------------------------------------------------------
+   */
 
   const profileIds = [
     ...new Set(
@@ -138,6 +193,7 @@ export default async function FacultyAttendancePage() {
 
   const {
     data: profiles,
+    error: profileError,
   } =
     profileIds.length > 0
       ? await supabase
@@ -152,7 +208,20 @@ export default async function FacultyAttendancePage() {
           )
       : {
           data: [],
+          error: null,
         };
+
+  if (profileError) {
+    throw new Error(
+      `Failed to load student profiles: ${profileError.message}`,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * MAP DATA
+   * ----------------------------------------------------------
+   */
 
   const profileMap =
     new Map(
@@ -174,8 +243,7 @@ export default async function FacultyAttendancePage() {
             name:
               profileMap.get(
                 student.profile_id,
-              )
-                ?.full_name ??
+              )?.full_name ??
               "Student",
           },
         ],
@@ -191,6 +259,12 @@ export default async function FacultyAttendancePage() {
         ],
       ),
     );
+
+  /*
+   * ----------------------------------------------------------
+   * PAGE
+   * ----------------------------------------------------------
+   */
 
   return (
     <div className="space-y-8">
@@ -208,7 +282,9 @@ export default async function FacultyAttendancePage() {
         </p>
       </div>
 
-      {/* Create session */}
+      {/* ======================================================
+          CREATE SESSION
+      ====================================================== */}
 
       <Card className="p-6">
         <h2 className="text-lg font-semibold">
@@ -259,7 +335,9 @@ export default async function FacultyAttendancePage() {
         </form>
       </Card>
 
-      {/* Sessions */}
+      {/* ======================================================
+          SESSIONS
+      ====================================================== */}
 
       <div className="space-y-5">
         {(sessions ?? []).map(
@@ -276,11 +354,30 @@ export default async function FacultyAttendancePage() {
                   session.id,
               );
 
+            /*
+             * At the moment, the records table tells us
+             * which students have attendance records.
+             *
+             * Therefore display the students represented
+             * by this session's records.
+             */
             const sessionStudents =
-              (students ?? []).filter(
-                (student) =>
-                  student.id,
-              );
+              sessionRecords
+                .map(
+                  (record) =>
+                    studentMap.get(
+                      record.student_id,
+                    ),
+                )
+                .filter(
+                  (
+                    student,
+                  ): student is NonNullable<
+                    typeof student
+                  > =>
+                    student !==
+                    undefined,
+                );
 
             return (
               <Card
@@ -296,12 +393,16 @@ export default async function FacultyAttendancePage() {
                       </p>
 
                       <p className="text-sm text-muted-foreground">
-                        {session.session_date}
+                        {
+                          session.session_date
+                        }
                       </p>
                     </div>
 
                     <div className="text-sm">
-                      {sessionRecords.length}{" "}
+                      {
+                        sessionRecords.length
+                      }{" "}
                       records
                     </div>
                   </div>
@@ -319,20 +420,22 @@ export default async function FacultyAttendancePage() {
 
                       return (
                         <div
-                          key={student.id}
+                          key={
+                            student.id
+                          }
                           className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between"
                         >
                           <div>
                             <p className="font-medium">
                               {
-                                studentMap.get(
-                                  student.id,
-                                )?.name
+                                student.name
                               }
                             </p>
 
                             <p className="text-xs text-muted-foreground">
-                              {student.student_number}
+                              {
+                                student.student_number
+                              }
                             </p>
                           </div>
 
@@ -387,7 +490,9 @@ export default async function FacultyAttendancePage() {
                                         : "hover:bg-muted"
                                     }`}
                                   >
-                                    {status}
+                                    {
+                                      status
+                                    }
                                   </button>
                                 </form>
                               ),
@@ -399,7 +504,7 @@ export default async function FacultyAttendancePage() {
                               action={
                                 correctAttendance
                               }
-                              className="flex gap-2"
+                              className="flex flex-wrap gap-2"
                             >
                               <input
                                 type="hidden"
@@ -409,16 +514,33 @@ export default async function FacultyAttendancePage() {
                                 }
                               />
 
-                              <input
+                              <select
                                 name="new_status"
                                 defaultValue={
                                   record.status
                                 }
                                 className="w-28 rounded-lg border px-3 py-2 text-xs"
-                              />
+                              >
+                                <option value="present">
+                                  present
+                                </option>
+
+                                <option value="absent">
+                                  absent
+                                </option>
+
+                                <option value="late">
+                                  late
+                                </option>
+
+                                <option value="excused">
+                                  excused
+                                </option>
+                              </select>
 
                               <input
                                 name="reason"
+                                required
                                 placeholder="Correction reason"
                                 className="w-48 rounded-lg border px-3 py-2 text-xs"
                               />
@@ -434,6 +556,13 @@ export default async function FacultyAttendancePage() {
                         </div>
                       );
                     },
+                  )}
+
+                  {sessionStudents.length ===
+                    0 && (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      No attendance records have been created for this session yet.
+                    </div>
                   )}
                 </div>
               </Card>
