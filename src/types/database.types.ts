@@ -935,6 +935,313 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_ai_generations: {
+        Row: {
+          created_at: string
+          exam_id: string
+          generation_type: string
+          id: string
+          input_snapshot: Json
+          model: string | null
+          output: Json
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          exam_id: string
+          generation_type: string
+          id?: string
+          input_snapshot?: Json
+          model?: string | null
+          output?: Json
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          exam_id?: string
+          generation_type?: string
+          id?: string
+          input_snapshot?: Json
+          model?: string | null
+          output?: Json
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_ai_generations_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_ai_generations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_performance: {
+        Row: {
+          created_at: string
+          exam_id: string
+          faculty_feedback: string | null
+          grade: string | null
+          id: string
+          marks: number | null
+          max_marks: number | null
+          percentage: number | null
+          performance_status: string
+          rank: number | null
+          strengths: string[]
+          student_id: string
+          updated_at: string
+          weaknesses: string[]
+        }
+        Insert: {
+          created_at?: string
+          exam_id: string
+          faculty_feedback?: string | null
+          grade?: string | null
+          id?: string
+          marks?: number | null
+          max_marks?: number | null
+          percentage?: number | null
+          performance_status?: string
+          rank?: number | null
+          strengths?: string[]
+          student_id: string
+          updated_at?: string
+          weaknesses?: string[]
+        }
+        Update: {
+          created_at?: string
+          exam_id?: string
+          faculty_feedback?: string | null
+          grade?: string | null
+          id?: string
+          marks?: number | null
+          max_marks?: number | null
+          percentage?: number | null
+          performance_status?: string
+          rank?: number | null
+          strengths?: string[]
+          student_id?: string
+          updated_at?: string
+          weaknesses?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_performance_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_performance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_revision_items: {
+        Row: {
+          actual_minutes: number
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          plan_id: string
+          planned_minutes: number
+          priority: string
+          scheduled_date: string
+          status: string
+          title: string
+          topic_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_minutes?: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          plan_id: string
+          planned_minutes?: number
+          priority?: string
+          scheduled_date: string
+          status?: string
+          title: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_minutes?: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          plan_id?: string
+          planned_minutes?: number
+          priority?: string
+          scheduled_date?: string
+          status?: string
+          title?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_revision_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "exam_revision_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_revision_items_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_revision_plans: {
+        Row: {
+          available_minutes_per_day: number
+          created_at: string
+          description: string | null
+          end_date: string | null
+          exam_id: string
+          generated_by: string
+          id: string
+          start_date: string | null
+          status: string
+          student_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          available_minutes_per_day?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          exam_id: string
+          generated_by?: string
+          id?: string
+          start_date?: string | null
+          status?: string
+          student_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          available_minutes_per_day?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          exam_id?: string
+          generated_by?: string
+          id?: string
+          start_date?: string | null
+          status?: string
+          student_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_revision_plans_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_revision_plans_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_topic_progress: {
+        Row: {
+          actual_minutes: number
+          confidence_level: number
+          coverage_percentage: number
+          created_at: string
+          estimated_minutes: number
+          exam_id: string
+          id: string
+          last_studied_at: string | null
+          notes: string | null
+          status: string
+          student_id: string
+          topic_id: string
+          updated_at: string
+        }
+        Insert: {
+          actual_minutes?: number
+          confidence_level?: number
+          coverage_percentage?: number
+          created_at?: string
+          estimated_minutes?: number
+          exam_id: string
+          id?: string
+          last_studied_at?: string | null
+          notes?: string | null
+          status?: string
+          student_id: string
+          topic_id: string
+          updated_at?: string
+        }
+        Update: {
+          actual_minutes?: number
+          confidence_level?: number
+          coverage_percentage?: number
+          created_at?: string
+          estimated_minutes?: number
+          exam_id?: string
+          id?: string
+          last_studied_at?: string | null
+          notes?: string | null
+          status?: string
+          student_id?: string
+          topic_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_topic_progress_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_topic_progress_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_topic_progress_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string

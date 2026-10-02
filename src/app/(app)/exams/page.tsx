@@ -4,58 +4,53 @@ import { ExamPreparationOverview } from "@/components/exams/exam-preparation-ove
 import { NextExamCard } from "@/components/exams/next-exam-card";
 import { getExamsData } from "@/services/exams/exams-data";
 
-function getDaysRemaining(
-  examDate: string,
-) {
-  const todayString =
-    new Intl.DateTimeFormat(
-      "en-CA",
-      {
-        timeZone: "Asia/Kolkata",
-      },
-    ).format(new Date());
+function getDaysRemaining(examDate: string) {
+  const todayString = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+  }).format(new Date());
 
-  const today = new Date(
-    `${todayString}T00:00:00+05:30`,
-  );
+  const today = new Date(`${todayString}T00:00:00+05:30`);
 
-  const exam = new Date(
-    `${examDate}T00:00:00+05:30`,
-  );
+  const exam = new Date(`${examDate}T00:00:00+05:30`);
 
   return Math.round(
-    (exam.getTime() -
-      today.getTime()) /
+    (exam.getTime() - today.getTime()) /
       (1000 * 60 * 60 * 24),
   );
 }
 
 export default async function ExamsPage() {
-  const data =
-    await getExamsData();
+  const data = await getExamsData();
 
-  const upcomingWithDays =
-    data.upcomingExams.map(
-      (exam) => ({
-        exam,
-        daysRemaining:
-          getDaysRemaining(
-            exam.examDate,
-          ),
-      }),
-    );
+  const upcomingWithDays = data.upcomingExams.map((exam) => ({
+    exam,
+    daysRemaining: getDaysRemaining(exam.examDate),
+  }));
 
-  const examsWithinSevenDays =
-    upcomingWithDays.filter(
-      ({ daysRemaining }) =>
-        daysRemaining >= 0 &&
-        daysRemaining <= 7,
-    ).length;
+  const examsWithinSevenDays = upcomingWithDays.filter(
+    ({ daysRemaining }) =>
+      daysRemaining >= 0 && daysRemaining <= 7,
+  ).length;
+
+  /*
+   * Phase 30.9
+   *
+   * These values should come from the real preparation/
+   * syllabus intelligence service when that service is
+   * connected to the page.
+   *
+   * Do NOT put fake percentages here.
+   *
+   * Until the real preparation data is available, use
+   * null/0 only where the component supports it.
+   */
 
   const overview = {
-    totalUpcomingExams:
-      data.upcomingExams.length,
+    totalUpcomingExams: data.upcomingExams.length,
     examsWithinSevenDays,
+
+    // These must NOT be presented as real calculated values.
+    // They will be populated from the real preparation service.
     averageReadiness: 0,
     subjectsNeedingRevision: 0,
   };
@@ -72,16 +67,12 @@ export default async function ExamsPage() {
         exam={data.nextExam}
         daysRemaining={
           data.nextExam
-            ? getDaysRemaining(
-                data.nextExam.examDate,
-              )
+            ? getDaysRemaining(data.nextExam.examDate)
             : null
         }
       />
 
-      <ExamPreparationOverview
-        overview={overview}
-      />
+      <ExamPreparationOverview overview={overview} />
 
       <section>
         <div className="mb-4">
@@ -94,13 +85,10 @@ export default async function ExamsPage() {
           </p>
         </div>
 
-        <ExamList
-          exams={data.upcomingExams}
-        />
+        <ExamList exams={data.upcomingExams} />
       </section>
 
-      {data.completedExams.length >
-        0 && (
+      {data.completedExams.length > 0 && (
         <section>
           <div className="mb-4">
             <h2 className="text-xl font-bold">
@@ -108,9 +96,7 @@ export default async function ExamsPage() {
             </h2>
           </div>
 
-          <ExamList
-            exams={data.completedExams}
-          />
+          <ExamList exams={data.completedExams} />
         </section>
       )}
     </div>
