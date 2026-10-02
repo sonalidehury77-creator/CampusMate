@@ -3,86 +3,127 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   AttendanceData,
   AttendanceRecord,
+  AttendanceRiskLevel,
   AttendanceStatus,
   SubjectAttendance,
 } from "@/types/attendance";
 
 const REQUIRED_PERCENTAGE = 75;
 
-function roundPercentage(value: number): number {
+function roundPercentage(
+  value: number,
+): number {
   return Math.round(value * 100) / 100;
 }
 
 function calculateAttendancePercentage(
-  present: number,
-  total: number,
+  attended: number,
+  counted: number,
 ): number {
-  if (total === 0) {
+  if (counted === 0) {
     return 0;
   }
 
-  return roundPercentage((present / total) * 100);
+  return roundPercentage(
+    (attended / counted) * 100,
+  );
 }
 
-/*
- * Returns the maximum number of additional
- * classes a student can miss while still
- * remaining at or above the target percentage.
- *
- * Current:
- *
- * present / total
- *
- * We find maximum x such that:
- *
- * present / (total + x) >= target / 100
- */
 function calculateClassesCanMiss(
-  present: number,
-  total: number,
+  attended: number,
+  counted: number,
   targetPercentage: number,
 ): number {
-  if (total === 0) {
+  if (counted === 0) {
     return 0;
   }
 
-  const target = targetPercentage / 100;
+  const target =
+    targetPercentage / 100;
 
-  if (present / total < target) {
+  if (
+    attended / counted <
+    target
+  ) {
     return 0;
   }
 
-  return Math.floor(present / target - total);
+  return Math.max(
+    0,
+    Math.floor(
+      attended / target - counted,
+    ),
+  );
 }
 
-/*
- * Returns the minimum number of consecutive
- * classes that must be attended to reach
- * the target percentage.
- *
- * We solve:
- *
- * (present + x) / (total + x) >= target
- */
 function calculateClassesRequired(
-  present: number,
-  total: number,
+  attended: number,
+  counted: number,
   targetPercentage: number,
 ): number {
-  if (total === 0) {
+  if (counted === 0) {
     return 0;
   }
 
-  const target = targetPercentage / 100;
+  const target =
+    targetPercentage / 100;
 
-  if (present / total >= target) {
+  if (
+    attended / counted >=
+    target
+  ) {
     return 0;
   }
 
-  const numerator = target * total - present;
-  const denominator = 1 - target;
+  const numerator =
+    target * counted - attended;
 
-  return Math.ceil(numerator / denominator);
+  const denominator =
+    1 - target;
+
+  if (denominator <= 0) {
+    return 0;
+  }
+
+  return Math.max(
+    0,
+    Math.ceil(
+      numerator / denominator,
+    ),
+  );
+}
+
+function getRiskLevel(
+  percentage: number,
+  requiredPercentage: number,
+  countedClasses: number,
+): AttendanceRiskLevel {
+  if (countedClasses === 0) {
+    return "healthy";
+  }
+
+  if (
+    percentage <
+    requiredPercentage - 10
+  ) {
+    return "critical";
+  }
+
+  if (
+    percentage <
+    requiredPercentage
+  ) {
+    return "shortage";
+  }
+
+  if (
+    percentage <
+    requiredPercentage + 5
+  ) {
+    return "at-risk";
+  }
+
+  return "healthy";
 }
 
 function mapAttendanceStatus(
@@ -90,6 +131,10 @@ function mapAttendanceStatus(
 ): AttendanceStatus {
   if (value === "present") {
     return "present";
+  }
+
+  if (value === "late") {
+    return "late";
   }
 
   if (value === "excused") {
@@ -105,93 +150,171 @@ function buildSubjectAttendance(
   subjectName: string,
   records: AttendanceRecord[],
 ): SubjectAttendance {
-  const subjectRecords = records.filter(
-    (record) => record.subjectId === subjectId,
-  );
+  const subjectRecords =
+    records.filter(
+      (record) =>
+        record.subjectId ===
+        subjectId,
+    );
 
-  const presentClasses = subjectRecords.filter(
-    (record) => record.status === "present",
-  ).length;
+  const presentClasses =
+    subjectRecords.filter(
+      (record) =>
+        record.status ===
+        "present",
+    ).length;
 
-  const absentClasses = subjectRecords.filter(
-    (record) => record.status === "absent",
-  ).length;
+  const lateClasses =
+    subjectRecords.filter(
+      (record) =>
+        record.status ===
+        "late",
+    ).length;
 
-  const totalClasses = subjectRecords.length;
+  const absentClasses =
+    subjectRecords.filter(
+      (record) =>
+        record.status ===
+        "absent",
+    ).length;
 
-  const percentage = calculateAttendancePercentage(
-    presentClasses,
-    totalClasses,
-  );
+  const excusedClasses =
+    subjectRecords.filter(
+      (record) =>
+        record.status ===
+        "excused",
+    ).length;
 
-  const classesCanMiss = calculateClassesCanMiss(
-    presentClasses,
-    totalClasses,
-    REQUIRED_PERCENTAGE,
-  );
+  const attendedClasses =
+    presentClasses +
+    lateClasses;
+
+  const countedClasses =
+    presentClasses +
+    lateClasses +
+    absentClasses;
+
+  const totalClasses =
+    subjectRecords.length;
+
+  const percentage =
+    calculateAttendancePercentage(
+      attendedClasses,
+      countedClasses,
+    );
+
+  const classesCanMiss =
+    calculateClassesCanMiss(
+      attendedClasses,
+      countedClasses,
+      REQUIRED_PERCENTAGE,
+    );
 
   const classesRequiredToReachTarget =
     calculateClassesRequired(
-      presentClasses,
-      totalClasses,
+      attendedClasses,
+      countedClasses,
       REQUIRED_PERCENTAGE,
     );
+
+  const isBelowRequired =
+    countedClasses > 0 &&
+    percentage <
+      REQUIRED_PERCENTAGE;
+
+  const isAtRisk =
+    countedClasses > 0 &&
+    percentage <
+      REQUIRED_PERCENTAGE + 5;
+
+  const isSafe =
+    countedClasses > 0 &&
+    percentage >=
+      REQUIRED_PERCENTAGE;
 
   return {
     subjectId,
     subjectCode,
     subjectName,
 
+    attendedClasses,
+
     presentClasses,
+    lateClasses,
+
+    countedClasses,
+
     absentClasses,
+    excusedClasses,
+
     totalClasses,
 
     percentage,
 
-    requiredPercentage: REQUIRED_PERCENTAGE,
+    attendancePercentage:
+      percentage,
+
+    requiredPercentage:
+      REQUIRED_PERCENTAGE,
 
     classesCanMiss,
 
     classesRequiredToReachTarget,
 
-    isSafe:
-      totalClasses > 0 &&
-      percentage >= REQUIRED_PERCENTAGE,
+    isBelowRequired,
 
-    isAtRisk:
-      totalClasses > 0 &&
-      percentage < REQUIRED_PERCENTAGE,
+    isAtRisk,
+
+    isSafe,
+
+    riskLevel:
+      getRiskLevel(
+        percentage,
+        REQUIRED_PERCENTAGE,
+        countedClasses,
+      ),
   };
 }
 
 export async function getAttendanceData(
   userId: string,
 ): Promise<AttendanceData> {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   /*
-   * 1. Find the authenticated student's
-   * student record.
+   * ==========================================================
+   * 1. STUDENT
+   * ==========================================================
    */
+
   const {
     data: student,
     error: studentError,
   } = await supabase
     .from("students")
     .select("id")
-    .eq("profile_id", userId)
+    .eq(
+      "profile_id",
+      userId,
+    )
     .single();
 
-  if (studentError || !student) {
+  if (
+    studentError ||
+    !student
+  ) {
     throw new Error(
       "Unable to load your student information.",
     );
   }
 
   /*
-   * 2. Load all attendance records
-   * belonging to this student.
+   * ==========================================================
+   * 2. ATTENDANCE RECORDS
+   * ==========================================================
    */
+
   const {
     data: attendanceRows,
     error: attendanceError,
@@ -199,12 +322,16 @@ export async function getAttendanceData(
     .from("attendance_records")
     .select(
       `
-      id,
-      session_id,
-      status
+        id,
+        session_id,
+        student_id,
+        status
       `,
     )
-    .eq("student_id", student.id);
+    .eq(
+      "student_id",
+      student.id,
+    );
 
   if (attendanceError) {
     throw new Error(
@@ -212,20 +339,41 @@ export async function getAttendanceData(
     );
   }
 
-  const records = attendanceRows ?? [];
+  const records =
+    attendanceRows ?? [];
+
+  /*
+   * No attendance yet.
+   */
 
   if (records.length === 0) {
     return {
       summary: {
+        attendedClasses: 0,
         presentClasses: 0,
+        lateClasses: 0,
+
+        countedClasses: 0,
+
         absentClasses: 0,
+        excusedClasses: 0,
+
         totalClasses: 0,
+
         percentage: 0,
-        requiredPercentage: REQUIRED_PERCENTAGE,
+
+        requiredPercentage:
+          REQUIRED_PERCENTAGE,
+
         classesCanMiss: 0,
-        classesRequiredToReachTarget: 0,
-        isSafe: false,
+
+        classesRequiredToReachTarget:
+          0,
+
         isAtRisk: false,
+        isSafe: false,
+
+        riskLevel: "healthy",
       },
 
       subjects: [],
@@ -235,52 +383,45 @@ export async function getAttendanceData(
   }
 
   /*
-   * 3. Get session IDs.
+   * ==========================================================
+   * 3. SESSION IDS
+   * ==========================================================
    */
+
   const sessionIds = [
     ...new Set(
       records.map(
-        (record) => record.session_id,
+        (record) =>
+          record.session_id,
       ),
     ),
   ];
 
   /*
-   * 4. Load attendance sessions.
-   *
-   * IMPORTANT:
-   *
-   * attendance_sessions contains:
-   *
-   * id
-   * subject_id
-   * faculty_id
-   * timetable_entry_id
-   * session_date
-   *
-   * It does NOT contain:
-   *
-   * start_time
-   * end_time
-   * room
-   *
-   * Therefore those fields are loaded from
-   * timetable_entries below.
+   * ==========================================================
+   * 4. ATTENDANCE SESSIONS
+   * ==========================================================
    */
+
   const {
     data: sessionRows,
     error: sessionError,
   } = await supabase
-    .from("attendance_sessions")
+    .from(
+      "attendance_sessions",
+    )
     .select(
       `
-      id,
-      subject_id,
-      timetable_entry_id,
-      session_date
+        id,
+        subject_id,
+        timetable_entry_id,
+        session_date
       `,
     )
-    .in("id", sessionIds);
+    .in(
+      "id",
+      sessionIds,
+    );
 
   if (sessionError) {
     throw new Error(
@@ -288,29 +429,36 @@ export async function getAttendanceData(
     );
   }
 
-  const sessions = sessionRows ?? [];
+  const sessions =
+    sessionRows ?? [];
 
   /*
-   * 5. Get subject IDs.
+   * ==========================================================
+   * 5. SUBJECTS
+   * ==========================================================
    */
+
   const subjectIds = [
     ...new Set(
       sessions.map(
-        (session) => session.subject_id,
+        (session) =>
+          session.subject_id,
       ),
     ),
   ];
 
-  /*
-   * 6. Load subjects.
-   */
   const {
     data: subjectRows,
     error: subjectError,
   } = await supabase
     .from("subjects")
-    .select("id, code, name")
-    .in("id", subjectIds);
+    .select(
+      "id, code, name",
+    )
+    .in(
+      "id",
+      subjectIds,
+    );
 
   if (subjectError) {
     throw new Error(
@@ -318,29 +466,27 @@ export async function getAttendanceData(
     );
   }
 
-  const subjectMap = new Map(
-    (subjectRows ?? []).map(
-      (subject) => [
-        subject.id,
-        {
-          code: subject.code,
-          name: subject.name,
-        },
-      ],
-    ),
-  );
+  const subjectMap =
+    new Map(
+      (subjectRows ?? []).map(
+        (subject) => [
+          subject.id,
+          {
+            code:
+              subject.code,
+            name:
+              subject.name,
+          },
+        ],
+      ),
+    );
 
   /*
-   * 7. Get timetable entry IDs.
-   *
-   * Attendance session -> timetable entry
-   *
-   * This gives us:
-   *
-   * start_time
-   * end_time
-   * room
+   * ==========================================================
+   * 6. TIMETABLE
+   * ==========================================================
    */
+
   const timetableEntryIds = [
     ...new Set(
       sessions
@@ -350,35 +496,38 @@ export async function getAttendanceData(
         )
         .filter(
           (
-            timetableEntryId,
-          ): timetableEntryId is string =>
-            timetableEntryId !== null,
+            value,
+          ): value is string =>
+            value !== null,
         ),
     ),
   ];
 
-  /*
-   * 8. Load timetable entries.
-   */
   const {
     data: timetableRows,
     error: timetableError,
-  } = timetableEntryIds.length > 0
-    ? await supabase
-        .from("timetable_entries")
-        .select(
-          `
-          id,
-          start_time,
-          end_time,
-          room
-          `,
-        )
-        .in("id", timetableEntryIds)
-    : {
-        data: [],
-        error: null,
-      };
+  } =
+    timetableEntryIds.length > 0
+      ? await supabase
+          .from(
+            "timetable_entries",
+          )
+          .select(
+            `
+              id,
+              start_time,
+              end_time,
+              room
+            `,
+          )
+          .in(
+            "id",
+            timetableEntryIds,
+          )
+      : {
+          data: [],
+          error: null,
+        };
 
   if (timetableError) {
     throw new Error(
@@ -386,94 +535,117 @@ export async function getAttendanceData(
     );
   }
 
-  const timetableMap = new Map(
-    (timetableRows ?? []).map(
-      (entry) => [
-        entry.id,
-        {
-          startTime: entry.start_time,
-          endTime: entry.end_time,
-          room: entry.room,
-        },
-      ],
-    ),
-  );
+  const timetableMap =
+    new Map(
+      (timetableRows ?? []).map(
+        (entry) => [
+          entry.id,
+          {
+            startTime:
+              entry.start_time,
+            endTime:
+              entry.end_time,
+            room:
+              entry.room,
+          },
+        ],
+      ),
+    );
 
   /*
-   * 9. Create maps for quick lookup.
+   * ==========================================================
+   * 7. SESSION MAP
+   * ==========================================================
    */
-  const sessionMap = new Map(
-    sessions.map(
-      (session) => [
-        session.id,
-        session,
-      ],
-    ),
-  );
+
+  const sessionMap =
+    new Map(
+      sessions.map(
+        (session) => [
+          session.id,
+          session,
+        ],
+      ),
+    );
 
   /*
-   * 10. Convert database rows into
-   * application attendance records.
+   * ==========================================================
+   * 8. NORMALIZED RECORDS
+   * ==========================================================
    */
-  const attendanceRecords: AttendanceRecord[] =
+
+  const attendanceRecords =
     records
-      .map((record) => {
-        const session = sessionMap.get(
-          record.session_id,
-        );
+      .map(
+        (record) => {
+          const session =
+            sessionMap.get(
+              record.session_id,
+            );
 
-        if (!session) {
-          return null;
-        }
+          if (!session) {
+            return null;
+          }
 
-        const subject = subjectMap.get(
-          session.subject_id,
-        );
+          const subject =
+            subjectMap.get(
+              session.subject_id,
+            );
 
-        if (!subject) {
-          return null;
-        }
+          if (!subject) {
+            return null;
+          }
 
-        const timetableEntry =
-          session.timetable_entry_id
-            ? timetableMap.get(
-                session.timetable_entry_id,
-              )
-            : undefined;
+          const timetableEntry =
+            session.timetable_entry_id
+              ? timetableMap.get(
+                  session.timetable_entry_id,
+                )
+              : undefined;
 
-        return {
-          id: record.id,
+          return {
+            id: record.id,
 
-          sessionId:
-            record.session_id,
+            sessionId:
+              record.session_id,
 
-          subjectId:
-            session.subject_id,
+            studentId:
+              record.student_id,
 
-          subjectCode:
-            subject.code,
+            subjectId:
+              session.subject_id,
 
-          subjectName:
-            subject.name,
+            subjectCode:
+              subject.code,
 
-          sessionDate:
-            session.session_date,
+            subjectName:
+              subject.name,
 
-          startTime:
-            timetableEntry?.startTime ?? null,
+            sessionDate:
+              session.session_date,
 
-          endTime:
-            timetableEntry?.endTime ?? null,
+            startTime:
+              timetableEntry
+                ?.startTime ??
+              null,
 
-          room:
-            timetableEntry?.room ?? null,
+            endTime:
+              timetableEntry
+                ?.endTime ??
+              null,
 
-          status:
-            mapAttendanceStatus(
-              record.status,
-            ),
-        };
-      })
+            room:
+              timetableEntry
+                ?.room ??
+              null,
+
+            status:
+              mapAttendanceStatus(
+                record.status,
+              ),
+          };
+        },
+      )
       .filter(
         (
           record,
@@ -482,116 +654,165 @@ export async function getAttendanceData(
       );
 
   /*
-   * 11. Overall attendance.
+   * ==========================================================
+   * 9. OVERALL CALCULATION
+   * ==========================================================
    */
+
   const presentClasses =
     attendanceRecords.filter(
       (record) =>
-        record.status === "present",
+        record.status ===
+        "present",
+    ).length;
+
+  const lateClasses =
+    attendanceRecords.filter(
+      (record) =>
+        record.status ===
+        "late",
     ).length;
 
   const absentClasses =
     attendanceRecords.filter(
       (record) =>
-        record.status === "absent",
+        record.status ===
+        "absent",
     ).length;
+
+  const excusedClasses =
+    attendanceRecords.filter(
+      (record) =>
+        record.status ===
+        "excused",
+    ).length;
+
+  const attendedClasses =
+    presentClasses +
+    lateClasses;
+
+  const countedClasses =
+    presentClasses +
+    lateClasses +
+    absentClasses;
 
   const totalClasses =
     attendanceRecords.length;
 
   const percentage =
     calculateAttendancePercentage(
-      presentClasses,
-      totalClasses,
+      attendedClasses,
+      countedClasses,
     );
 
   const classesCanMiss =
     calculateClassesCanMiss(
-      presentClasses,
-      totalClasses,
+      attendedClasses,
+      countedClasses,
       REQUIRED_PERCENTAGE,
     );
 
   const classesRequiredToReachTarget =
     calculateClassesRequired(
-      presentClasses,
-      totalClasses,
+      attendedClasses,
+      countedClasses,
       REQUIRED_PERCENTAGE,
     );
 
+  const isAtRisk =
+    countedClasses > 0 &&
+    percentage <
+      REQUIRED_PERCENTAGE + 5;
+
+  const isSafe =
+    countedClasses > 0 &&
+    percentage >=
+      REQUIRED_PERCENTAGE;
+
   /*
-   * 12. Subject-wise attendance.
+   * ==========================================================
+   * 10. SUBJECT-WISE
+   * ==========================================================
    */
-  const subjectMapForAttendance =
-    new Map<
-      string,
-      {
-        code: string;
-        name: string;
-      }
-    >();
 
-  attendanceRecords.forEach(
-    (record) => {
-      subjectMapForAttendance.set(
-        record.subjectId,
-        {
-          code: record.subjectCode,
-          name: record.subjectName,
-        },
-      );
-    },
-  );
-
-  const subjects: SubjectAttendance[] =
-    Array.from(
-      subjectMapForAttendance.entries(),
-    )
+  const subjectAttendance =
+    (subjectRows ?? [])
       .map(
-        ([subjectId, subject]) =>
+        (subject) =>
           buildSubjectAttendance(
-            subjectId,
+            subject.id,
             subject.code,
             subject.name,
             attendanceRecords,
           ),
       )
+      .filter(
+        (subject) =>
+          subject.totalClasses >
+          0,
+      )
       .sort(
         (a, b) =>
-          a.percentage - b.percentage,
+          a.percentage -
+          b.percentage,
       );
 
   /*
-   * 13. Most recent attendance.
+   * ==========================================================
+   * 11. RECENT RECORDS
+   * ==========================================================
    */
+
   const recentRecords =
     [...attendanceRecords]
-      .sort((a, b) => {
-        const dateDifference =
-          new Date(
-            b.sessionDate,
-          ).getTime() -
-          new Date(
-            a.sessionDate,
-          ).getTime();
+      .sort(
+        (a, b) => {
+          const dateDifference =
+            new Date(
+              b.sessionDate,
+            ).getTime() -
+            new Date(
+              a.sessionDate,
+            ).getTime();
 
-        if (dateDifference !== 0) {
-          return dateDifference;
-        }
+          if (
+            dateDifference !==
+            0
+          ) {
+            return dateDifference;
+          }
 
-        return (
-          (b.startTime ?? "").localeCompare(
-            a.startTime ?? "",
-          )
-        );
-      })
-      .slice(0, 20);
+          return (
+            b.startTime ??
+            ""
+          ).localeCompare(
+            a.startTime ??
+              "",
+          );
+        },
+      )
+      .slice(0, 30);
+
+  /*
+   * ==========================================================
+   * 12. FINAL RESPONSE
+   * ==========================================================
+   */
 
   return {
     summary: {
+      attendedClasses,
+
       presentClasses,
+      lateClasses,
+
+      countedClasses,
+
       absentClasses,
+      excusedClasses,
+
       totalClasses,
+
       percentage,
 
       requiredPercentage:
@@ -601,16 +822,20 @@ export async function getAttendanceData(
 
       classesRequiredToReachTarget,
 
-      isSafe:
-        totalClasses > 0 &&
-        percentage >= REQUIRED_PERCENTAGE,
+      isAtRisk,
 
-      isAtRisk:
-        totalClasses > 0 &&
-        percentage < REQUIRED_PERCENTAGE,
+      isSafe,
+
+      riskLevel:
+        getRiskLevel(
+          percentage,
+          REQUIRED_PERCENTAGE,
+          countedClasses,
+        ),
     },
 
-    subjects,
+    subjects:
+      subjectAttendance,
 
     recentRecords,
   };

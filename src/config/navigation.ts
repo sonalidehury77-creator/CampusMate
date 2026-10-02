@@ -183,6 +183,12 @@ export const facultyNavigation: NavigationItem[] = [
 
   {
     section: "Teaching",
+    label: "Attendance Analytics",
+    href: "/faculty/attendance/analytics",
+  },
+
+  {
+    section: "Teaching",
     label: "Timetable",
     href: "/faculty/timetable",
   },
@@ -300,7 +306,16 @@ export const adminNavigation: NavigationItem[] = [
   // =========================
   // INTELLIGENCE
   // =========================
-
+  {
+    section: "Analytics",
+    label: "Attendance Intelligence",
+    href: "/admin/attendance",
+  },
+  {
+    section: "Teaching",
+    label: "Attendance History",
+    href: "/faculty/attendance/history",
+  },
   {
     section: "Intelligence",
     label: "CampusMate AI",

@@ -364,6 +364,47 @@ export type Database = {
           },
         ]
       }
+      attendance_policies: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          prediction_window_days: number
+          required_percentage: number
+          subject_id: string
+          updated_at: string
+          warning_percentage: number
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          prediction_window_days?: number
+          required_percentage?: number
+          subject_id: string
+          updated_at?: string
+          warning_percentage?: number
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          prediction_window_days?: number
+          required_percentage?: number
+          subject_id?: string
+          updated_at?: string
+          warning_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_policies_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: true
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           id: string
