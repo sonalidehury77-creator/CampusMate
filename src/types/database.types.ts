@@ -2282,6 +2282,98 @@ export type Database = {
           },
         ]
       }
+      smart_focus_sessions: {
+        Row: {
+          actual_minutes: number
+          completion_percentage: number
+          confidence_after: number | null
+          confidence_before: number | null
+          created_at: string
+          difficulty_rating: number | null
+          ended_at: string | null
+          id: string
+          interruption_count: number
+          notes: string | null
+          planned_minutes: number
+          self_rating: number | null
+          started_at: string
+          status: string
+          student_id: string
+          study_item_id: string | null
+          subject_id: string | null
+          topic_id: string | null
+        }
+        Insert: {
+          actual_minutes?: number
+          completion_percentage?: number
+          confidence_after?: number | null
+          confidence_before?: number | null
+          created_at?: string
+          difficulty_rating?: number | null
+          ended_at?: string | null
+          id?: string
+          interruption_count?: number
+          notes?: string | null
+          planned_minutes?: number
+          self_rating?: number | null
+          started_at: string
+          status?: string
+          student_id: string
+          study_item_id?: string | null
+          subject_id?: string | null
+          topic_id?: string | null
+        }
+        Update: {
+          actual_minutes?: number
+          completion_percentage?: number
+          confidence_after?: number | null
+          confidence_before?: number | null
+          created_at?: string
+          difficulty_rating?: number | null
+          ended_at?: string | null
+          id?: string
+          interruption_count?: number
+          notes?: string | null
+          planned_minutes?: number
+          self_rating?: number | null
+          started_at?: string
+          status?: string
+          student_id?: string
+          study_item_id?: string | null
+          subject_id?: string | null
+          topic_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_focus_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_focus_sessions_study_item_id_fkey"
+            columns: ["study_item_id"]
+            isOneToOne: false
+            referencedRelation: "smart_study_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_focus_sessions_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_focus_sessions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smart_reminders: {
         Row: {
           created_at: string
@@ -2329,6 +2421,375 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_study_feedback: {
+        Row: {
+          completion_status: string | null
+          confidence: number | null
+          created_at: string
+          difficulty: number | null
+          feedback: string | null
+          focus_session_id: string | null
+          id: string
+          student_id: string
+          study_item_id: string | null
+          understanding: number | null
+        }
+        Insert: {
+          completion_status?: string | null
+          confidence?: number | null
+          created_at?: string
+          difficulty?: number | null
+          feedback?: string | null
+          focus_session_id?: string | null
+          id?: string
+          student_id: string
+          study_item_id?: string | null
+          understanding?: number | null
+        }
+        Update: {
+          completion_status?: string | null
+          confidence?: number | null
+          created_at?: string
+          difficulty?: number | null
+          feedback?: string | null
+          focus_session_id?: string | null
+          id?: string
+          student_id?: string
+          study_item_id?: string | null
+          understanding?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_study_feedback_focus_session_id_fkey"
+            columns: ["focus_session_id"]
+            isOneToOne: false
+            referencedRelation: "smart_focus_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_feedback_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_feedback_study_item_id_fkey"
+            columns: ["study_item_id"]
+            isOneToOne: false
+            referencedRelation: "smart_study_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_study_items: {
+        Row: {
+          actual_minutes: number
+          assignment_id: string | null
+          completed_at: string | null
+          completion_percentage: number
+          confidence_after: number | null
+          confidence_before: number | null
+          created_at: string
+          description: string | null
+          difficulty_score: number
+          end_time: string | null
+          exam_id: string | null
+          id: string
+          plan_id: string
+          planned_minutes: number
+          priority: string
+          priority_score: number
+          recommendation_reason: Json
+          scheduled_date: string
+          start_time: string | null
+          status: string
+          student_id: string
+          study_type: string
+          subject_id: string | null
+          title: string
+          topic_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_minutes?: number
+          assignment_id?: string | null
+          completed_at?: string | null
+          completion_percentage?: number
+          confidence_after?: number | null
+          confidence_before?: number | null
+          created_at?: string
+          description?: string | null
+          difficulty_score?: number
+          end_time?: string | null
+          exam_id?: string | null
+          id?: string
+          plan_id: string
+          planned_minutes?: number
+          priority?: string
+          priority_score?: number
+          recommendation_reason?: Json
+          scheduled_date: string
+          start_time?: string | null
+          status?: string
+          student_id: string
+          study_type?: string
+          subject_id?: string | null
+          title: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_minutes?: number
+          assignment_id?: string | null
+          completed_at?: string | null
+          completion_percentage?: number
+          confidence_after?: number | null
+          confidence_before?: number | null
+          created_at?: string
+          description?: string | null
+          difficulty_score?: number
+          end_time?: string | null
+          exam_id?: string | null
+          id?: string
+          plan_id?: string
+          planned_minutes?: number
+          priority?: string
+          priority_score?: number
+          recommendation_reason?: Json
+          scheduled_date?: string
+          start_time?: string | null
+          status?: string
+          student_id?: string
+          study_type?: string
+          subject_id?: string | null
+          title?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_study_items_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_items_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "smart_study_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_items_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_items_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_study_items_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_study_plans: {
+        Row: {
+          available_minutes: number
+          completed_minutes: number
+          completion_percentage: number
+          created_at: string
+          generated_by: string
+          generation_reason: Json
+          id: string
+          plan_date: string
+          plan_type: string
+          planned_minutes: number
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_minutes?: number
+          completed_minutes?: number
+          completion_percentage?: number
+          created_at?: string
+          generated_by?: string
+          generation_reason?: Json
+          id?: string
+          plan_date: string
+          plan_type?: string
+          planned_minutes?: number
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_minutes?: number
+          completed_minutes?: number
+          completion_percentage?: number
+          created_at?: string
+          generated_by?: string
+          generation_reason?: Json
+          id?: string
+          plan_date?: string
+          plan_type?: string
+          planned_minutes?: number
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_study_plans_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_study_preferences: {
+        Row: {
+          auto_generate_daily_plan: boolean
+          auto_generate_weekly_plan: boolean
+          break_minutes: number
+          created_at: string
+          daily_target_minutes: number
+          id: string
+          include_weekends: boolean
+          maximum_session_minutes: number
+          minimum_session_minutes: number
+          preferred_end_time: string | null
+          preferred_session_type: string
+          preferred_start_time: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_generate_daily_plan?: boolean
+          auto_generate_weekly_plan?: boolean
+          break_minutes?: number
+          created_at?: string
+          daily_target_minutes?: number
+          id?: string
+          include_weekends?: boolean
+          maximum_session_minutes?: number
+          minimum_session_minutes?: number
+          preferred_end_time?: string | null
+          preferred_session_type?: string
+          preferred_start_time?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_generate_daily_plan?: boolean
+          auto_generate_weekly_plan?: boolean
+          break_minutes?: number
+          created_at?: string
+          daily_target_minutes?: number
+          id?: string
+          include_weekends?: boolean
+          maximum_session_minutes?: number
+          minimum_session_minutes?: number
+          preferred_end_time?: string | null
+          preferred_session_type?: string
+          preferred_start_time?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_study_preferences_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_subject_goals: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          priority: string
+          status: string
+          student_id: string
+          subject_id: string
+          target_confidence_percentage: number
+          target_coverage_percentage: number
+          target_date: string | null
+          target_exam_percentage: number | null
+          updated_at: string
+          weekly_minutes: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          priority?: string
+          status?: string
+          student_id: string
+          subject_id: string
+          target_confidence_percentage?: number
+          target_coverage_percentage?: number
+          target_date?: string | null
+          target_exam_percentage?: number | null
+          updated_at?: string
+          weekly_minutes?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          priority?: string
+          status?: string
+          student_id?: string
+          subject_id?: string
+          target_confidence_percentage?: number
+          target_coverage_percentage?: number
+          target_date?: string | null
+          target_exam_percentage?: number | null
+          updated_at?: string
+          weekly_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_subject_goals_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_subject_goals_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
